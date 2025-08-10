@@ -1,0 +1,11 @@
+{
+  "app_title": "Iris Health",
+  "start": "Start",
+  "left_eye": "Left Eye",
+  "right_eye": "Right Eye",
+  "gender_male": "Male",
+  "gender_female": "Female",
+  "take_photo": "Take Photo",
+  "done": "Done",
+  "history": "History"
+}
