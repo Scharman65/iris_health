@@ -1,3 +1,39 @@
+# Flutter/Dart/Pub
+.dart_tool/
+.packages
+.pub-cache/
+.pub/
+
+# Build outputs
+build/
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+ios/.symlinks/
+ios/Pods/
+macos/Pods/
+linux/flutter/ephemeral/
+windows/flutter/ephemeral/
+
+# Generated files
+Generated.xcconfig
+flutter_export_environment.sh
+
+# Xcode
+DerivedData/
+*.xcuserstate
+*.xcworkspace
+*.xcuserdatad
+*.lock
+
+# VS Code
+.vscode/
+
+# IntelliJ
+.idea/
+
+# Misc
+*.log
+
 # Miscellaneous
 *.class
 *.log
