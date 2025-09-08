@@ -1,0 +1,358 @@
+import 'dart:io';
+import 'dart:math' as math;
+
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' as services;
+import 'package:camera/camera.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
+import 'package:image/image.dart' as im;
+import 'package:path_provider/path_provider.dart';
+
+import '../models/diagnosis_model.dart';
+import '../services/diagnosis_service.dart';
+
+class CameraScreen extends StatefulWidget {
+  final int examId;
+  final int age;
+  final Gender gender;
+
+  const CameraScreen({
+    super.key,
+    required this.examId,
+    required this.age,
+    required this.gender,
+  });
+
+  @override
+  State<CameraScreen> createState() => _CameraScreenState();
+}
+
+class _CameraScreenState extends State<CameraScreen> {
+  final DiagnosisService _ds = DiagnosisService();
+
+  CameraController? _controller;
+  bool _isReady = false;
+  bool _isLeftEye = true;
+  String? _tempPreviewPath; // путь круглого PNG для предпросмотра
+  bool _busy = false;
+
+  // UI-настройки
+  static const Size _ringSize = Size(260, 260); // диаметр прицела
+  static const double _maskOpacity = 0.35; // затемнение вокруг круга
+  static const double _startZoom = 2.0; // стартовый зум
+  static const double _cropFactor = 0.70; // центр-кроп перед маской
+
+  @override
+  void initState() {
+    super.initState();
+    _initCamera();
+  }
+
+  @override
+  void dispose() {
+    WakelockPlus.disable();
+    _controller?.dispose();
+    super.dispose();
+  }
+
+  // ---------- Выбор камеры (предпочесть последнюю заднюю — обычно 0.5x) ----------
+  Future<CameraDescription> _pickUltraWideBack() async {
+    final cams = await availableCameras();
+    final backs =
+        cams.where((c) => c.lensDirection == CameraLensDirection.back).toList();
+    if (backs.isNotEmpty) {
+      for (final c in backs) {
+        debugPrint("[Iris] back cam: ${c.name}");
+      }
+      return backs.length > 1 ? backs.last : backs.first;
+    }
+    return cams.first;
+  }
+
+  // ---------------- ИНИЦИАЛИЗАЦИЯ КАМЕРЫ ----------------
+  Future<void> _initCamera() async {
+    await WakelockPlus.enable();
+
+    final cam = await _pickUltraWideBack();
+    final ctrl = CameraController(
+      cam,
+      ResolutionPreset.max,
+      enableAudio: false,
+      imageFormatGroup: ImageFormatGroup.jpeg,
+    );
+
+    await ctrl.initialize();
+
+    // Логи для контроля
+    debugPrint("[Iris] Camera: ${cam.name} (${cam.lensDirection})");
+    debugPrint(
+        "[Iris] Preview size=${ctrl.value.previewSize} ar=${ctrl.value.aspectRatio}");
+
+    // Фиксируем портрет
+    try {
+      await ctrl.lockCaptureOrientation(services.DeviceOrientation.portraitUp);
+    } catch (_) {}
+
+    // Стартовый зум
+    try {
+      final maxZoom = await ctrl.getMaxZoomLevel();
+      await ctrl.setZoomLevel(_startZoom.clamp(1.0, maxZoom));
+    } catch (_) {}
+
+    // Автофокус/экспозиция по центру
+    try {
+      await ctrl.setFocusMode(FocusMode.auto);
+      await ctrl.setExposureMode(ExposureMode.auto);
+      await ctrl.setFocusPoint(const Offset(0.5, 0.5));
+      await ctrl.setExposurePoint(const Offset(0.5, 0.5));
+    } catch (_) {}
+
+    if (!mounted) {
+      await ctrl.dispose();
+      return;
+    }
+    setState(() {
+      _controller = ctrl;
+      _isReady = true;
+    });
+  }
+
+  // ---------------- СЪЁМКА → КРУГЛЫЙ PNG ----------------
+  Future<void> _takePhoto() async {
+    final c = _controller;
+    if (_busy ||
+        c == null ||
+        !c.value.isInitialized ||
+        c.value.isTakingPicture) {
+      return;
+    }
+
+    setState(() => _busy = true);
+    try {
+      final file = await c.takePicture();
+      final png = await _autoCropCenterToCircle(file.path);
+      if (!mounted) return;
+      setState(() => _tempPreviewPath = png.path);
+    } catch (e) {
+      debugPrint('takePhoto error: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _busy = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _confirmPhoto() async {
+    final path = _tempPreviewPath;
+    if (path == null) return;
+
+    if (_isLeftEye) {
+      await _ds.saveLeftEye(path);
+      if (!mounted) return;
+      setState(() {
+        _isLeftEye = false;
+        _tempPreviewPath = null;
+      });
+    } else {
+      await _ds.saveRightEyeAndCreateDiagnosis(
+        context: context,
+        examId: widget.examId,
+        age: widget.age,
+        gender: widget.gender,
+        rightEyeImagePath: path,
+      );
+    }
+  }
+
+  /// Центр-кроп (квадрат) + круглая маска (альфа) → PNG.
+  Future<File> _autoCropCenterToCircle(String srcPath) async {
+    final bytes = await File(srcPath).readAsBytes();
+    final img = im.decodeImage(bytes)!;
+
+    final int w = img.width, h = img.height;
+    final int side = (math.min(w, h) * _cropFactor).round();
+    final int x = ((w - side) / 2).round();
+    final int y = ((h - side) / 2).round();
+
+    // ✅ image 4.x: именованные параметры
+    final im.Image sq = im.copyCrop(
+      img,
+      x: x,
+      y: y,
+      width: side,
+      height: side,
+    );
+
+    final cx = side / 2.0, cy = side / 2.0, r = side / 2.0, r2 = r * r;
+    for (int yy = 0; yy < side; yy++) {
+      for (int xx = 0; xx < side; xx++) {
+        final dx = xx - cx, dy = yy - cy;
+        if (dx * dx + dy * dy > r2) {
+          final p = sq.getPixel(xx, yy);
+          sq.setPixelRgba(xx, yy, p.r, p.g, p.b, 0);
+        }
+      }
+    }
+
+    final outBytes = im.encodePng(sq, level: 6);
+    final dir = await getApplicationDocumentsDirectory();
+    final out =
+        File('${dir.path}/iris_${DateTime.now().millisecondsSinceEpoch}.png');
+    await out.writeAsBytes(outBytes, flush: true);
+    return out;
+  }
+
+  // ---------- Превью без растяжения (cover по аспекту) ----------
+  Widget _buildCameraPreview() {
+    final c = _controller!;
+    final size = MediaQuery.of(context).size;
+    final deviceAR = size.width / size.height;
+
+    double arFromPlugin = c.value.aspectRatio;
+    final double arA = arFromPlugin;
+    final double arB = 1 / arFromPlugin;
+
+    final double previewAR =
+        (arA - deviceAR).abs() <= (arB - deviceAR).abs() ? arA : arB;
+
+    final scale = previewAR / deviceAR;
+
+    return Center(
+      child: Transform.scale(
+        scale: scale,
+        child: AspectRatio(
+          aspectRatio: previewAR,
+          child: CameraPreview(c),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_isReady || _controller == null) {
+      return const Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        title: Text(_isLeftEye ? 'Левый глаз' : 'Правый глаз'),
+      ),
+      body: Stack(
+        children: [
+          // Превью камеры
+          Positioned.fill(
+            child: _buildCameraPreview(),
+          ),
+
+          // Прицельное кольцо
+          IgnorePointer(
+            child: Center(
+              child: Container(
+                width: _ringSize.width,
+                height: _ringSize.height,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.green, width: 3),
+                ),
+              ),
+            ),
+          ),
+
+          // Мягкая маска вокруг круга
+          IgnorePointer(
+            child: CustomPaint(
+              size: MediaQuery.of(context).size,
+              painter: _CircleMaskPainter(
+                radius: _ringSize.width / 2,
+                opacity: _maskOpacity,
+              ),
+            ),
+          ),
+
+          // Предпросмотр круглого PNG
+          if (_tempPreviewPath != null)
+            Positioned.fill(
+              child: Container(
+                color: Colors.black87,
+                alignment: Alignment.center,
+                child: Image.file(File(_tempPreviewPath!), fit: BoxFit.contain),
+              ),
+            ),
+
+          if (_busy)
+            const Positioned.fill(
+              child: ColoredBox(
+                color: Color(0x88000000),
+                child: Center(child: CircularProgressIndicator()),
+              ),
+            ),
+        ],
+      ),
+
+      // Большая кнопка «Сделать фото»
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      floatingActionButton: _tempPreviewPath == null
+          ? FloatingActionButton.large(
+              onPressed: _takePhoto,
+              child: const Icon(Icons.camera_alt, size: 32),
+            )
+          : null,
+
+      // Панель подтверждения после снимка
+      bottomNavigationBar: _tempPreviewPath != null
+          ? SafeArea(
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    OutlinedButton(
+                      onPressed: () => setState(() => _tempPreviewPath = null),
+                      child: const Text('Переснять'),
+                    ),
+                    ElevatedButton(
+                      onPressed: _confirmPhoto,
+                      child: const Text('Сохранить'),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          : null,
+    );
+  }
+}
+
+/// Полупрозрачная маска с круглым «окном» по центру.
+class _CircleMaskPainter extends CustomPainter {
+  final double radius;
+  final double opacity;
+  const _CircleMaskPainter({required this.radius, this.opacity = 0.35});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Offset.zero & size;
+    final center = Offset(size.width / 2, size.height / 2);
+
+    final bg = Paint()..color = Color.fromRGBO(0, 0, 0, opacity);
+    final clear = Paint()..blendMode = BlendMode.clear;
+
+    // правильный порядок: слой → рисуем тёмный фон → «вычищаем» круг
+    canvas.saveLayer(rect, Paint());
+    canvas.drawRect(rect, bg);
+    canvas.drawCircle(center, radius, clear);
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(covariant _CircleMaskPainter oldDelegate) =>
+      oldDelegate.radius != radius || oldDelegate.opacity != opacity;
+}

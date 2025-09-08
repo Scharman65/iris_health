@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>$(PRODUCT_NAME)</string>
+	<string>Иридодиагностика</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -26,20 +26,51 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+	</dict>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_dartVmService._tcp</string>
+		<string>_dartobservatory._tcp</string>
+		<string>_dartVmService._tcp</string>
+		<string>_dartobservatory._tcp</string>
+		<string>_dartObservatory._tcp</string>
+		<string>_dartVmService._tcp</string>
+	</array>
 	<key>NSCameraUsageDescription</key>
-	<string>Требуется доступ к камере для съёмки</string>
+	<string>Need camera for iris imaging</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Нужен локальный доступ для отладки Flutter (VM Service)</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Микрофон нужен при записи видео</string>
+	<string>Microphone access is required when recording video. (Not used in this build.)</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>Нужен доступ для сохранения снимков</string>
+	<string>Нужно для сохранения снимков в медиатеку (опционально)</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Нужен доступ к фото для выбора изображений</string>
+	<key>UIApplicationSceneManifest</key>
+	<dict>
+		<key>UIApplicationSupportsMultipleScenes</key>
+		<false/>
+		<key>UISceneConfigurations</key>
+		<dict>
+			<key>UIWindowSceneSessionRoleApplication</key>
+			<array>
+				<dict>
+					<key>UISceneConfigurationName</key>
+					<string>Default Configuration</string>
+					<key>UISceneDelegateClassName</key>
+					<string>$(PRODUCT_MODULE_NAME).SceneDelegate</string>
+				</dict>
+			</array>
+		</dict>
+	</dict>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
-	<key>UIMainStoryboardFile</key>
-	<string>Main</string>
 	<key>UIRequiredDeviceCapabilities</key>
 	<array>
 		<string>arm64</string>

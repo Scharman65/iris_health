@@ -31,7 +31,7 @@ class Diagnosis extends HiveObject {
   final DateTime date;
 
   @HiveField(6)
-  final String? aiResultJson; // 👈 Добавлено для сохранения результата AI
+  final String? aiResultJson;
 
   Diagnosis({
     required this.id,

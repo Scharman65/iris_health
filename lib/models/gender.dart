@@ -6,7 +6,7 @@ part 'gender.g.dart';
 enum Gender {
   @HiveField(0)
   male,
-  
+
   @HiveField(1)
   female,
 }
