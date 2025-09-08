@@ -1,25 +1,36 @@
-// lib/screens/camera_screen.dart
-import 'dart:async';
+import 'package:iris_health/models/eye_side.dart';
 import 'dart:io';
-import 'dart:math';
+import 'dart:typed_data';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
-import 'package:image/image.dart' as img;
-
-import '../models/diagnosis_model.dart';
-import '../services/diagnosis_service.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
+import 'package:iris_health/l10n/localizations.dart';
+import 'package:iris_health/utils/sharp.dart';
+import 'package:iris_health/utils/quality_utils.dart';
+import 'package:iris_health/utils/circle_crop.dart';
+import 'package:iris_health/services/diagnosis_service.dart';
+import 'diagnosis_summary_screen.dart';
 
 class CameraScreen extends StatefulWidget {
-  final int examId;
-  final int age;
-  final Gender gender;
-
   const CameraScreen({
     super.key,
     required this.examId,
-    required this.age,
-    required this.gender,
+    this.onlySide,
+    this.age,
+    this.gender,
   });
+
+  /// Идентификатор обследования (папка хранения и сквозной ключ)
+  final String examId;
+
+  /// Если задано — снимаем только указанную сторону (для пересъёмки),
+  /// иначе мастер: левый → правый.
+  final EyeSide? onlySide;
+
+  /// Доп. параметры (могут быть не заданы).
+  final int? age;
+  final String? gender;
 
   @override
   State<CameraScreen> createState() => _CameraScreenState();
@@ -27,18 +38,12 @@ class CameraScreen extends StatefulWidget {
 
 class _CameraScreenState extends State<CameraScreen> {
   CameraController? _controller;
-  bool _isInitialized = false;
-  String? _errorMessage;
+  List<CameraDescription>? _cameras;
+  bool _ready = false;
 
-  bool _isLeft = true;
-  bool _isBusy = false;
-  double _lastSharpness = 0.0;
-
-  static const double _zoomLevel = 2.0;
-  static const double _sharpnessThreshold = 100.0;
-  static const int _maxAttemptsPerEye = 6;
-
-  static const double _ringDiameterPx = 250.0;
+  bool _leftDone = false;
+  Uint8List? _leftBestBytes;
+  Uint8List? _rightBestBytes;
 
   @override
   void initState() {
@@ -48,36 +53,50 @@ class _CameraScreenState extends State<CameraScreen> {
 
   Future<void> _initCamera() async {
     try {
-      final cams = await availableCameras();
-      final description = cams.firstWhere(
-        (c) => c.lensDirection == CameraLensDirection.back,
-        orElse: () => cams.first,
-      );
+      _cameras = await availableCameras();
+
+      // По умолчанию первая камера, но пытаемся выбрать «tele/zoom» для макро.
+      CameraDescription cam = _cameras!.first;
+      final backs = _cameras!
+          .where((c) => c.lensDirection == CameraLensDirection.back)
+          .toList();
+      if (backs.isNotEmpty) {
+        cam = backs.first;
+        final tele = backs.firstWhere(
+          (c) {
+            final n = c.name.toLowerCase();
+            return n.contains('tele') || n.contains('zoom');
+          },
+          orElse: () => cam,
+        );
+        cam = tele;
+      }
 
       _controller = CameraController(
-        description,
+        cam,
         ResolutionPreset.max,
         enableAudio: false,
         imageFormatGroup: ImageFormatGroup.jpeg,
       );
-
       await _controller!.initialize();
 
-      await _controller!.setFlashMode(FlashMode.off);
-      await _controller!.setFocusMode(FocusMode.auto);
-      await _controller!.setExposureMode(ExposureMode.auto);
-      await _controller!.setFocusPoint(const Offset(0.5, 0.5));
-      await _controller!.setExposurePoint(const Offset(0.5, 0.5));
-
+      // Базовые настройки: без вспышки, пробуем x2 если доступно
       try {
-        await _controller!.setZoomLevel(_zoomLevel);
+        await _controller!.setFlashMode(FlashMode.off);
+      } catch (_) {}
+      try {
+        final maxZoom = await _controller!.getMaxZoomLevel();
+        final targetZoom = maxZoom >= 2.0 ? 2.0 : 1.0;
+        await _controller!.setZoomLevel(targetZoom);
       } catch (_) {}
 
-      setState(() => _isInitialized = true);
-
-      unawaited(_autoCaptureCurrentEye());
+      if (!mounted) return;
+      setState(() => _ready = true);
     } catch (e) {
-      setState(() => _errorMessage = 'Ошибка камеры: $e');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Camera init error: $e')),
+      );
     }
   }
 
@@ -87,264 +106,233 @@ class _CameraScreenState extends State<CameraScreen> {
     super.dispose();
   }
 
-  Future<void> _autoCaptureCurrentEye() async {
-    if (!mounted || _isBusy) return;
-    _isBusy = true;
+  /// Серия снимков с оценкой яркости/бликов/резкости
+  Future<Uint8List?> _captureBestOf(
+    int count, {
+    double minSharp = 200.0,
+    int attempts = 3,
+  }) async {
+    if (_controller == null || !_controller!.value.isInitialized) return null;
+    Uint8List? bestBytes;
+    double best = -1;
 
-    final ctrl = _controller;
-    if (ctrl == null || !ctrl.value.isInitialized) {
-      _isBusy = false;
+    for (int a = 0; a < attempts; a++) {
+      bestBytes = null;
+      best = -1;
+      for (int i = 0; i < count; i++) {
+        final xf = await _controller!.takePicture();
+        final bytes = await xf.readAsBytes();
+
+        final bright = meanBrightness(bytes);
+        final glare = glareRatio(bytes);
+
+        if (bright < 0.18) {
+          // темно → подсказка и пробуем включить «torch»
+          try {
+            await _controller!.setFlashMode(FlashMode.torch);
+          } catch (_) {}
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(S.of(context).t('too_dark'))),
+            );
+          }
+        } else if (glare > 0.02) {
+          // блики → подсказка и выключим вспышку
+          try {
+            await _controller!.setFlashMode(FlashMode.off);
+          } catch (_) {}
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(S.of(context).t('too_glare'))),
+            );
+          }
+        }
+
+        final s = sharpnessFromBytes(bytes);
+        if (s > best) {
+          best = s;
+          bestBytes = bytes;
+        }
+        await Future.delayed(const Duration(milliseconds: 150));
+      }
+      if (best >= minSharp) break; // достаточно резкий кадр получили
+    }
+    return bestBytes;
+  }
+
+  Future<void> _shootSeries() async {
+    if (!_ready) return;
+
+    // Если задана пересъёмка только одной стороны
+    if (widget.onlySide != null) {
+      final best = await _captureBestOf(3, minSharp: 200.0, attempts: 3);
+      if (best == null) return;
+
+      final dir = await getApplicationDocumentsDirectory();
+      final folder = Directory(p.join(dir.path, 'exams', widget.examId));
+      await folder.create(recursive: true);
+
+      if (widget.onlySide == EyeSide.left) {
+        final leftPath = p.join(folder.path, 'left.jpg');
+        final cropped =
+            cropIrisCenterCircle(best, radiusFactor: 0.32, maxSide: 1500);
+        await File(leftPath).writeAsBytes(cropped, flush: true);
+      } else {
+        final rightPath = p.join(folder.path, 'right.jpg');
+        final cropped =
+            cropIrisCenterCircle(best, radiusFactor: 0.32, maxSide: 1500);
+        await File(rightPath).writeAsBytes(cropped, flush: true);
+      }
+
+      // Возвращаемся назад (пересъёмка завершена)
+      if (!mounted) return;
+      Navigator.of(context).maybePop();
       return;
     }
 
-    for (int attempt = 1; attempt <= _maxAttemptsPerEye; attempt++) {
-      try {
-        await ctrl.setFocusMode(FocusMode.auto);
-        await ctrl.setFocusPoint(const Offset(0.5, 0.5));
-        await Future.delayed(const Duration(milliseconds: 280));
-
-        final shot = await ctrl.takePicture();
-
-        final sharp = await _estimateSharpness(File(shot.path));
-        _lastSharpness = sharp;
-        if (!mounted) return;
-        setState(() {});
-
-        if (sharp >= _sharpnessThreshold) {
-          final cropped = await _cropToCircle(File(shot.path));
-          await DiagnosisService().onEyeCaptured(
-            context: context,
-            examId: widget.examId,
-            age: widget.age,
-            gender: widget.gender,
-            isLeftEye: _isLeft,
-            imagePath: cropped,
-          );
-
-          if (_isLeft && mounted) {
-            setState(() => _isLeft = false);
-            await Future.delayed(const Duration(milliseconds: 400));
-            _isBusy = false;
-            unawaited(_autoCaptureCurrentEye());
-            return;
-          } else {
-            _isBusy = false;
-            return;
-          }
-        } else {
-          await Future.delayed(const Duration(milliseconds: 420));
-        }
-      } catch (_) {
-        await Future.delayed(const Duration(milliseconds: 480));
-      }
+    // Режим мастера: сначала левый, затем правый
+    if (!_leftDone) {
+      final best = await _captureBestOf(3, minSharp: 200.0, attempts: 3);
+      if (best == null) return;
+      setState(() {
+        _leftBestBytes = best;
+        _leftDone = true;
+      });
+      return;
     }
 
-    _isBusy = false;
+    if (_leftDone && _rightBestBytes == null) {
+      final best = await _captureBestOf(3, minSharp: 200.0, attempts: 3);
+      if (best == null) return;
+      setState(() {
+        _rightBestBytes = best;
+      });
+      await _persistAndAnalyze();
+    }
+  }
+
+  Future<void> _persistAndAnalyze() async {
+    final dir = await getApplicationDocumentsDirectory();
+    final folder = Directory(p.join(dir.path, 'exams', widget.examId));
+    await folder.create(recursive: true);
+
+    final leftPath = p.join(folder.path, 'left.jpg');
+    final rightPath = p.join(folder.path, 'right.jpg');
+
+    if (_leftBestBytes != null) {
+      final cropped =
+          cropIrisCenterCircle(_leftBestBytes!, radiusFactor: 0.32, maxSide: 1500);
+      await File(leftPath).writeAsBytes(cropped, flush: true);
+    }
+    if (_rightBestBytes != null) {
+      final cropped =
+          cropIrisCenterCircle(_rightBestBytes!, radiusFactor: 0.32, maxSide: 1500);
+      await File(rightPath).writeAsBytes(cropped, flush: true);
+    }
+
+    // Передаём возраст/пол только если заданы.
+    final result = await DiagnosisService.analyzeAndSave(
+      examId: widget.examId,
+      leftPath: leftPath,
+      rightPath: rightPath,
+      age: widget.age,
+      gender: widget.gender,
+    );
+
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Не удалось получить чёткий кадр (${_isLeft ? "левый" : "правый"} глаз). '
-          'Попробуйте нажать кнопку вручную.',
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => DiagnosisSummaryScreen(
+          examId: widget.examId,
+          leftPath: leftPath,
+          rightPath: rightPath,
+          aiResult: result, // aiResult может быть nullable на экране
         ),
       ),
     );
   }
 
-  Future<void> _manualCapture() async {
-    if (_isBusy) return;
-    _isBusy = true;
-
-    final ctrl = _controller;
-    if (ctrl == null || !ctrl.value.isInitialized) {
-      _isBusy = false;
-      return;
-    }
-
-    try {
-      await ctrl.setFocusMode(FocusMode.auto);
-      await ctrl.setFocusPoint(const Offset(0.5, 0.5));
-      await Future.delayed(const Duration(milliseconds: 280));
-
-      final shot = await ctrl.takePicture();
-
-      final sharp = await _estimateSharpness(File(shot.path));
-      _lastSharpness = sharp;
-      if (!mounted) return;
-      setState(() {});
-
-      if (sharp < _sharpnessThreshold) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Кадр недостаточно резкий — попробуйте ещё раз')),
-        );
-        _isBusy = false;
-        return;
-      }
-
-      final cropped = await _cropToCircle(File(shot.path));
-      await DiagnosisService().onEyeCaptured(
-        context: context,
-        examId: widget.examId,
-        age: widget.age,
-        gender: widget.gender,
-        isLeftEye: _isLeft,
-        imagePath: cropped,
-      );
-
-      if (_isLeft) {
-        setState(() => _isLeft = false);
-        _isBusy = false;
-        unawaited(_autoCaptureCurrentEye());
-      } else {
-        _isBusy = false;
-      }
-    } catch (e) {
-      _isBusy = false;
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Съёмка не удалась: $e')),
-      );
-    }
-  }
-
-  Future<double> _estimateSharpness(File file) async {
-    final bytes = await file.readAsBytes();
-    final src = img.decodeImage(bytes);
-    if (src == null) return 0.0;
-
-    final gray = img.grayscale(src);
-
-    final w = gray.width, h = gray.height;
-    final lap = img.Image(width: w, height: h);
-
-    double sum = 0.0, sumSq = 0.0;
-    int count = 0;
-
-    double g(int x, int y) => img.getLuminance(gray.getPixel(x, y)).toDouble();
-
-    for (int y = 1; y < h - 1; y++) {
-      for (int x = 1; x < w - 1; x++) {
-        final v = (g(x, y - 1) + g(x - 1, y) - 4 * g(x, y) + g(x + 1, y) + g(x, y + 1)).toDouble();
-        sum += v;
-        sumSq += v * v;
-        count++;
-      }
-    }
-
-    if (count == 0) return 0.0;
-    final mean = sum / count;
-    final variance = (sumSq / count) - (mean * mean);
-    return variance.isFinite ? variance : 0.0;
-  }
-
-  Future<String> _cropToCircle(File file) async {
-    final bytes = await file.readAsBytes();
-    final original = img.decodeImage(bytes);
-    if (original == null) return file.path;
-
-    final size = min(original.width, original.height);
-    final ox = (original.width - size) ~/ 2;
-    final oy = (original.height - size) ~/ 2;
-    final square = img.copyCrop(original, x: ox, y: oy, width: size, height: size);
-
-    final circle = img.Image(width: size, height: size);
-    img.fill(circle, color: img.ColorRgba8(0, 0, 0, 0));
-    final r = size ~/ 2;
-    final r2 = r * r;
-    final cx = size ~/ 2;
-    final cy = size ~/ 2;
-
-    for (int y = 0; y < size; y++) {
-      final dy = y - cy;
-      for (int x = 0; x < size; x++) {
-        final dx = x - cx;
-        if (dx * dx + dy * dy <= r2) {
-          circle.setPixel(x, y, square.getPixel(x, y));
-        }
-      }
-    }
-
-    final outPath = file.path.replaceFirst(
-      RegExp(r'\.(jpg|jpeg|heic|png)$', caseSensitive: false),
-      '',
-    ) +
-        (_isLeft ? '_left' : '_right') +
-        '_circle.png';
-    await File(outPath).writeAsBytes(img.encodePng(circle));
-    return outPath;
+  Widget _previewWithOverlay() {
+    return Stack(
+      children: [
+        CameraPreview(_controller!),
+        Positioned.fill(
+          child: IgnorePointer(
+            child: CustomPaint(painter: _IrisRingPainter()),
+          ),
+        ),
+        Align(
+          alignment: Alignment.topCenter,
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: Colors.black54,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                child: Text(
+                  S.of(context).t('place_in_ring'),
+                  style: const TextStyle(color: Colors.white, fontSize: 16),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_errorMessage != null) {
-      return Scaffold(body: Center(child: Text(_errorMessage!)));
-    }
-    if (!_isInitialized) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    }
+    final takingLeft =
+        widget.onlySide == null ? !_leftDone : (widget.onlySide == EyeSide.left);
 
     return Scaffold(
-      body: Stack(
-        children: [
-          CameraPreview(_controller!),
-          _buildRingOverlay(),
-          _buildTopStatus(),
-          _buildBottomBar(),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRingOverlay() {
-    return IgnorePointer(
-      child: Center(
-        child: Container(
-          width: _ringDiameterPx,
-          height: _ringDiameterPx,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.white.withOpacity(0.9), width: 3),
-          ),
+      appBar: AppBar(
+        title: Text(
+          'Съёмка: ${takingLeft ? "ЛЕВЫЙ" : "ПРАВЫЙ"} глаз • ${widget.examId.substring(0, 8)}',
         ),
       ),
+      body: !_ready
+          ? const Center(child: CircularProgressIndicator())
+          : Stack(
+              children: [
+                Positioned.fill(child: _previewWithOverlay()),
+                Align(
+                  alignment: Alignment.bottomCenter,
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: FilledButton.tonal(
+                      onPressed: _shootSeries,
+                      child: Text(
+                        takingLeft
+                            ? S.of(context).t('shoot_left')
+                            : S.of(context).t('shoot_right'),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
     );
+  }
+}
+
+class _IrisRingPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = (size.shortestSide * 0.32);
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3
+      ..color = const Color(0xCCFFFFFF);
+    canvas.drawCircle(center, radius, paint);
   }
 
-  Widget _buildTopStatus() {
-    return Positioned(
-      top: MediaQuery.of(context).padding.top + 10,
-      left: 12,
-      right: 12,
-      child: Center(
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: Colors.black54,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Text(
-            '${_isLeft ? "Левый" : "Правый"} глаз • резкость: ${_lastSharpness.toStringAsFixed(0)}'
-            ' (порог ${_sharpnessThreshold.toStringAsFixed(0)})'
-            '${_isBusy ? " • съёмка…" : ""}',
-            style: const TextStyle(color: Colors.white),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBottomBar() {
-    return Positioned(
-      bottom: 28,
-      left: 0,
-      right: 0,
-      child: Center(
-        child: ElevatedButton.icon(
-          onPressed: _manualCapture,
-          icon: const Icon(Icons.camera_alt),
-          label: Text(_isLeft ? 'Сделать фото (левый)' : 'Сделать фото (правый)'),
-        ),
-      ),
-    );
-  }
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

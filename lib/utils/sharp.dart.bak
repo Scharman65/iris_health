@@ -1,0 +1,74 @@
+// lib/utils/sharp.dart — совместимо с image ^4.x
+import 'dart:io';
+import 'dart:math' as math;
+import 'package:image/image.dart' as img;
+
+/// Базовая метрика резкости: дисперсия Лапласиана (чем выше — тем резче)
+Future<double> computeSharpnessLaplacian(File file) async {
+  final bytes = await file.readAsBytes();
+  final decoded = img.decodeImage(bytes);
+  if (decoded == null) return 0.0;
+
+  final base = _fitWithin(decoded, 640);
+  final gray = img.grayscale(base);
+  final w = gray.width;
+  final h = gray.height;
+
+  const kernel = [
+    -1, -1, -1,
+    -1,  8, -1,
+    -1, -1, -1,
+  ];
+
+  double sum = 0.0;
+  double sum2 = 0.0;
+  int n = 0;
+
+  for (int y = 1; y < h - 1; y++) {
+    for (int x = 1; x < w - 1; x++) {
+      int acc = 0;
+      int ki = 0;
+      for (int j = -1; j <= 1; j++) {
+        for (int i = -1; i <= 1; i++) {
+          final p = gray.getPixel(x + i, y + j);
+          final v = p.r; // в градациях серого r=g=b
+          acc += v * kernel[ki++];
+        }
+      }
+      final d = acc.toDouble();
+      sum += d;
+      sum2 += d * d;
+      n++;
+    }
+  }
+
+  if (n == 0) return 0.0;
+  final mean = sum / n;
+  final variance = (sum2 / n) - mean * mean;
+  return variance.isNaN ? 0.0 : variance;
+}
+
+/// Хелпер: масштаб до maxSide по длинной стороне (ускоряет расчёт без потери ранжирования)
+img.Image _fitWithin(img.Image src, int maxSide) {
+  final w = src.width, h = src.height;
+  final maxSrc = math.max(w, h);
+  if (maxSrc <= maxSide) return src;
+  final scale = maxSide / maxSrc;
+  return img.copyResize(
+    src,
+    width: (w * scale).round(),
+    height: (h * scale).round(),
+    interpolation: img.Interpolation.linear,
+  );
+}
+
+/// Совместимость с возможным старым API
+Future<double> computeSharpness(File file) => computeSharpnessLaplacian(file);
+Future<double> varianceOfLaplacian(File file) => computeSharpnessLaplacian(file);
+Future<double> sharpnessScore(File file) => computeSharpnessLaplacian(file);
+
+/// Порог можно калибровать на твоих данных; стартово 120–300 для 640px стороны
+Future<bool> isSharp(File file, {double threshold = 180.0}) async {
+  final s = await computeSharpnessLaplacian(file);
+  return s >= threshold;
+}

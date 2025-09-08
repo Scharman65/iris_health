@@ -1,0 +1,439 @@
+{"duration_ms":"147338","share_with_app_devs":0,"roots_installed":0,"bug_type":"202","os_version":"iPhone OS 18.6.2 (22G100)","slice_uuid":"427539BC-5A1A-3B29-AD74-C015B6009527","is_first_party":0,"incident_id":"EE0C31B5-9271-424D-8416-DC34F71CC5B0","timestamp":"2025-08-24 01:11:06.00 +0200","app_name":"duetexpertd","name":"duetexpertd"}
+Date/Time:        2025-08-24 01:08:35.878 +0200
+End time:         2025-08-24 01:11:03.216 +0200
+OS Version:       iPhone OS 18.6.2 (Build 22G100)
+Architecture:     arm64e
+Report Version:   60
+Incident Identifier: EE0C31B5-9271-424D-8416-DC34F71CC5B0
+
+Data Source:      Microstackshots
+Shared Cache:     E62E079C-8C25-35B0-96F8-05DDBFEE7E0E slid base address 0x1998dc000, slide 0x198dc000
+
+Command:          duetexpertd
+Path:             /usr/libexec/duetexpertd
+Resource Coalition: "com.apple.duetexpertd"(325)
+On Behalf Of:     6 samples UNKNOWN [33] (6 samples originated by UNKNOWN [33])
+Architecture:     arm64e
+Parent:           UNKNOWN [1]
+PID:              1653
+
+Event:            cpu usage
+Action taken:     none
+CPU:              90 seconds cpu time over 147 seconds (61% cpu average), exceeding limit of 50% cpu over 180 seconds
+CPU limit:        90s
+Limit duration:   180s
+CPU used:         90s
+CPU duration:     147s
+Duration:         147.34s
+Duration Sampled: 117.25s (event starts 9.23s before samples, event ends 20.85s after samples)
+Steps:            7
+
+Hardware model:   iPhone14,2
+Active cpus:      6
+Memory size:      5.54 GB
+HW page size:     16384
+VM page size:     16384
+Shared cache residency: 20.42% (1000.59 MB / 4900.81 MB)
+
+Time Since Boot:  45236s
+Time Awake Since Boot: 36105s
+Time Since Wake:  724s
+
+Total CPU Time:   65.910s
+Advisory levels:  Battery -> 3, User -> 3, ThermalPressure -> 0, Combined -> 3
+Free disk space:  98.59 GB/119.09 GB, low space threshold 150 MB
+Vnodes Available: 64.89% (15574/24000, 12000 allocated, 12000 soft limit)
+Models:           none
+
+Preferred User Language: ru-ME
+Country Code:     ME
+Keyboards:        ru_RU Russian, en_GB QWERTY
+OS Cryptex File Extents: 1
+
+Heaviest stack for the target process:
+  6  ??? (libsystem_pthread.dylib + 2732) [0x226904aac]
+  6  ??? (libsystem_pthread.dylib + 2572) [0x226904a0c]
+  6  ??? (libdispatch.dylib + 84576) [0x1a4411a60]
+  6  ??? (libdispatch.dylib + 86492) [0x1a44121dc]
+  6  ??? (libdispatch.dylib + 44460) [0x1a4407dac]
+  6  ??? (libdispatch.dylib + 41272) [0x1a4407138]
+  6  ??? (libdispatch.dylib + 128404) [0x1a441c594]
+  6  ??? (libdispatch.dylib + 112052) [0x1a44185b4]
+  6  ??? (libxpc.dylib + 74240) [0x226961200]
+  6  ??? (libxpc.dylib + 129804) [0x22696eb0c]
+  6  ??? (libxpc.dylib + 219316) [0x2269848b4]
+  6  ??? (libxpc.dylib + 219660) [0x226984a0c]
+  6  ??? (libxpc.dylib + 218236) [0x22698447c]
+  6  ??? (AppPredictionInternal + 3506012) [0x1ea801f5c]
+  6  ??? (AppPredictionInternal + 3506656) [0x1ea8021e0]
+  6  ??? (AppPredictionInternal + 1990944) [0x1ea690120]
+  6  ??? (AppPredictionInternal + 3047884) [0x1ea7921cc]
+  6  ??? (AppPredictionInternal + 3048272) [0x1ea792350]
+  6  ??? (AppPredictionInternal + 3048648) [0x1ea7924c8]
+  4  ??? (AppPredictionInternal + 3049552) [0x1ea792850]
+  3  ??? (AppPredictionInternal + 3059412) [0x1ea794ed4]
+  3  ??? (AppPredictionInternal + 3060332) [0x1ea79526c]
+  3  ??? (AppPredictionInternal + 599072) [0x1ea53c420]
+  3  ??? (AppPredictionInternal + 593840) [0x1ea53afb0]
+  3  ??? (AppPredictionInternal + 596384) [0x1ea53b9a0]
+  3  ??? (BiomePubSub + 13060) [0x1c6dc3304]
+  3  ??? (BiomePubSub + 11548) [0x1c6dc2d1c]
+  3  ??? (BiomePubSub + 8144) [0x1c6dc1fd0]
+  3  ??? (AppPredictionInternal + 596704) [0x1ea53bae0]
+  3  ??? (AppPredictionInternal + 3324544) [0x1ea7d5a80]
+  2  ??? (AppPredictionInternal + 3324064) [0x1ea7d58a0]
+  2  ??? (LinkServices + 34748) [0x1be4b47bc]
+  2  ??? (Foundation + 732640) [0x19b18dde0]
+  2  ??? (Foundation + 403368) [0x19b13d7a8]
+  2  ??? (Foundation + 402384) [0x19b13d3d0]
+  2  ??? (Foundation + 402520) [0x19b13d458]
+  2  ??? (Foundation + 190124) [0x19b1096ac]
+  2  ??? (Foundation + 177912) [0x19b1066f8]
+  2  ??? (Foundation + 118708) [0x19b0f7fb4]
+  2  ??? (Foundation + 188288) [0x19b108f80]
+  1  ??? (LinkMetadata + 10572) [0x1b6cf594c]
+  1  ??? (Foundation + 190124) [0x19b1096ac]
+  1  ??? (Foundation + 177912) [0x19b1066f8]
+  1  ??? (Foundation + 118708) [0x19b0f7fb4]
+  1  ??? (Foundation + 188288) [0x19b108f80]
+  1  ??? (LinkMetadata + 29180) [0x1b6cfa1fc]
+  1  ??? (Foundation + 190124) [0x19b1096ac]
+  1  ??? (Foundation + 177912) [0x19b1066f8]
+  1  ??? (Foundation + 118708) [0x19b0f7fb4]
+  1  ??? (Foundation + 188288) [0x19b108f80]
+  1  ??? (Foundation + 114608) [0x19b0f6fb0]
+  1  ??? (Foundation + 184536) [0x19b1080d8]
+  1  ??? (Foundation + 188288) [0x19b108f80]
+  1  ??? (LinkMetadata + 174876) [0x1b6d1db1c]
+  1  ??? (Foundation + 190124) [0x19b1096ac]
+  1  ??? (Foundation + 177912) [0x19b1066f8]
+  1  ??? (Foundation + 118708) [0x19b0f7fb4]
+  1  ??? (Foundation + 188288) [0x19b108f80]
+  1  ??? (Foundation + 176468) [0x19b106154]
+  1  ??? (Foundation + 184536) [0x19b1080d8]
+  1  ??? (Foundation + 188288) [0x19b108f80]
+  1  ??? (LinkMetadata + 204544) [0x1b6d24f00]
+  1  ??? (Foundation + 190124) [0x19b1096ac]
+  1  ??? (Foundation + 177912) [0x19b1066f8]
+  1  ??? (Foundation + 118708) [0x19b0f7fb4]
+  1  ??? (Foundation + 188288) [0x19b108f80]
+  1  ??? (LinkMetadata + 7748) [0x1b6cf4e44]
+  1  ??? (Foundation + 190124) [0x19b1096ac]
+  1  ??? (Foundation + 177912) [0x19b1066f8]
+  1  ??? (Foundation + 118708) [0x19b0f7fb4]
+  1  ??? (Foundation + 188276) [0x19b108f74]
+  1  ??? (CoreFoundation + 153564) [0x19c4877dc]
+  1  ??? (CoreFoundation + 153940) [0x19c487954]
+  1  ??? (CoreFoundation + 53844) [0x19c46f254]
+
+
+Powerstats for:   duetexpertd [1653]
+UUID:             427539BC-5A1A-3B29-AD74-C015B6009527
+Path:             /usr/libexec/duetexpertd
+Resource Coalition: 6 samples "com.apple.duetexpertd"(325)
+On Behalf Of:     6 samples UNKNOWN [33] (6 samples originated by UNKNOWN [33])
+Architecture:     arm64e
+Parent:           UNKNOWN [1]
+UID:              501
+Sudden Term:      Tracked (allows idle exit)
+Footprint:        9040 KB -> 8992 KB (-48 KB) (max 11.17 MB )
+Pageins:          218 pages
+Start time:       2025-08-24 01:09:34.134 +0200
+End time:         2025-08-24 01:10:42.362 +0200
+Num samples:      6 (86%)
+Num threads:      1
+Primary state:    6 samples Non-Frontmost App, Non-Suppressed, User mode, Effective Thread QoS Background, Requested Thread QoS Background, Override Thread QoS Unspecified, e-core
+User Activity:    6 samples Idle, 0 samples Active
+Power Source:     0 samples on Battery, 6 samples on AC
+  6  ??? (libsystem_pthread.dylib + 2732) [0x226904aac]
+    6  ??? (libsystem_pthread.dylib + 2572) [0x226904a0c]
+      6  ??? (libdispatch.dylib + 84576) [0x1a4411a60]
+        6  ??? (libdispatch.dylib + 86492) [0x1a44121dc]
+          6  ??? (libdispatch.dylib + 44460) [0x1a4407dac]
+            6  ??? (libdispatch.dylib + 41272) [0x1a4407138]
+              6  ??? (libdispatch.dylib + 128404) [0x1a441c594]
+                6  ??? (libdispatch.dylib + 112052) [0x1a44185b4]
+                  6  ??? (libxpc.dylib + 74240) [0x226961200]
+                    6  ??? (libxpc.dylib + 129804) [0x22696eb0c]
+                      6  ??? (libxpc.dylib + 219316) [0x2269848b4]
+                        6  ??? (libxpc.dylib + 219660) [0x226984a0c]
+                          6  ??? (libxpc.dylib + 218236) [0x22698447c]
+                            6  ??? (AppPredictionInternal + 3506012) [0x1ea801f5c]
+                              6  ??? (AppPredictionInternal + 3506656) [0x1ea8021e0]
+                                6  ??? (AppPredictionInternal + 1990944) [0x1ea690120]
+                                  6  ??? (AppPredictionInternal + 3047884) [0x1ea7921cc]
+                                    6  ??? (AppPredictionInternal + 3048272) [0x1ea792350]
+                                      6  ??? (AppPredictionInternal + 3048648) [0x1ea7924c8]
+                                        4  ??? (AppPredictionInternal + 3049552) [0x1ea792850]
+                                          3  ??? (AppPredictionInternal + 3059412) [0x1ea794ed4]
+                                            3  ??? (AppPredictionInternal + 3060332) [0x1ea79526c]
+                                              3  ??? (AppPredictionInternal + 599072) [0x1ea53c420]
+                                                3  ??? (AppPredictionInternal + 593840) [0x1ea53afb0]
+                                                  3  ??? (AppPredictionInternal + 596384) [0x1ea53b9a0]
+                                                    3  ??? (BiomePubSub + 13060) [0x1c6dc3304]
+                                                      3  ??? (BiomePubSub + 11548) [0x1c6dc2d1c]
+                                                        3  ??? (BiomePubSub + 8144) [0x1c6dc1fd0]
+                                                          3  ??? (AppPredictionInternal + 596704) [0x1ea53bae0]
+                                                            3  ??? (AppPredictionInternal + 3324544) [0x1ea7d5a80]
+                                                              2  ??? (AppPredictionInternal + 3324064) [0x1ea7d58a0]
+                                                                2  ??? (LinkServices + 34748) [0x1be4b47bc]
+                                                                  2  ??? (Foundation + 732640) [0x19b18dde0]
+                                                                    2  ??? (Foundation + 403368) [0x19b13d7a8]
+                                                                      2  ??? (Foundation + 402384) [0x19b13d3d0]
+                                                                        2  ??? (Foundation + 402520) [0x19b13d458]
+                                                                          2  ??? (Foundation + 190124) [0x19b1096ac]
+                                                                            2  ??? (Foundation + 177912) [0x19b1066f8]
+                                                                              2  ??? (Foundation + 118708) [0x19b0f7fb4]
+                                                                                2  ??? (Foundation + 188288) [0x19b108f80]
+                                                                                  1  ??? (LinkMetadata + 10572) [0x1b6cf594c]
+                                                                                    1  ??? (Foundation + 190124) [0x19b1096ac]
+                                                                                      1  ??? (Foundation + 177912) [0x19b1066f8]
+                                                                                        1  ??? (Foundation + 118708) [0x19b0f7fb4]
+                                                                                          1  ??? (Foundation + 188288) [0x19b108f80]
+                                                                                            1  ??? (LinkMetadata + 29180) [0x1b6cfa1fc]
+                                                                                              1  ??? (Foundation + 190124) [0x19b1096ac]
+                                                                                                1  ??? (Foundation + 177912) [0x19b1066f8]
+                                                                                                  1  ??? (Foundation + 118708) [0x19b0f7fb4]
+                                                                                                    1  ??? (Foundation + 188288) [0x19b108f80]
+                                                                                                      1  ??? (Foundation + 114608) [0x19b0f6fb0]
+                                                                                                        1  ??? (Foundation + 184536) [0x19b1080d8]
+                                                                                                          1  ??? (Foundation + 188288) [0x19b108f80]
+                                                                                                            1  ??? (LinkMetadata + 174876) [0x1b6d1db1c]
+                                                                                                              1  ??? (Foundation + 190124) [0x19b1096ac]
+                                                                                                                1  ??? (Foundation + 177912) [0x19b1066f8]
+                                                                                                                  1  ??? (Foundation + 118708) [0x19b0f7fb4]
+                                                                                                                    1  ??? (Foundation + 188288) [0x19b108f80]
+                                                                                                                      1  ??? (Foundation + 176468) [0x19b106154]
+                                                                                                                        1  ??? (Foundation + 184536) [0x19b1080d8]
+                                                                                                                          1  ??? (Foundation + 188288) [0x19b108f80]
+                                                                                                                            1  ??? (LinkMetadata + 204544) [0x1b6d24f00]
+                                                                                                                              1  ??? (Foundation + 190124) [0x19b1096ac]
+                                                                                                                                1  ??? (Foundation + 177912) [0x19b1066f8]
+                                                                                                                                  1  ??? (Foundation + 118708) [0x19b0f7fb4]
+                                                                                                                                    1  ??? (Foundation + 188288) [0x19b108f80]
+                                                                                                                                      1  ??? (LinkMetadata + 7748) [0x1b6cf4e44]
+                                                                                                                                        1  ??? (Foundation + 190124) [0x19b1096ac]
+                                                                                                                                          1  ??? (Foundation + 177912) [0x19b1066f8]
+                                                                                                                                            1  ??? (Foundation + 118708) [0x19b0f7fb4]
+                                                                                                                                              1  ??? (Foundation + 188276) [0x19b108f74]
+                                                                                                                                                1  ??? (CoreFoundation + 153564) [0x19c4877dc]
+                                                                                                                                                  1  ??? (CoreFoundation + 153940) [0x19c487954]
+                                                                                                                                                    1  ??? (CoreFoundation + 53844) [0x19c46f254]
+                                                                                                                                                      1  <on behalf of UNKNOWN [33] (originated by UNKNOWN [33])>
+                                                                                  1  ??? (LinkMetadata + 10492) [0x1b6cf58fc]
+                                                                                    1  ??? (Foundation + 190124) [0x19b1096ac]
+                                                                                      1  ??? (Foundation + 177912) [0x19b1066f8]
+                                                                                        1  ??? (Foundation + 118708) [0x19b0f7fb4]
+                                                                                          1  ??? (Foundation + 188288) [0x19b108f80]
+                                                                                            1  ??? (Foundation + 176468) [0x19b106154]
+                                                                                              1  ??? (Foundation + 184536) [0x19b1080d8]
+                                                                                                1  ??? (Foundation + 188288) [0x19b108f80]
+                                                                                                  1  ??? (LinkMetadata + 981644) [0x1b6de2a8c]
+                                                                                                    1  ??? (Foundation + 190124) [0x19b1096ac]
+                                                                                                      1  ??? (Foundation + 177912) [0x19b1066f8]
+                                                                                                        1  ??? (Foundation + 118708) [0x19b0f7fb4]
+                                                                                                          1  ??? (Foundation + 188288) [0x19b108f80]
+                                                                                                            1  ??? (LinkMetadata + 11752) [0x1b6cf5de8]
+                                                                                                              1  ??? (Foundation + 190124) [0x19b1096ac]
+                                                                                                                1  ??? (Foundation + 177912) [0x19b1066f8]
+                                                                                                                  1  ??? (Foundation + 118708) [0x19b0f7fb4]
+                                                                                                                    1  ??? (Foundation + 188288) [0x19b108f80]
+                                                                                                                      1  ??? (LinkMetadata + 203256) [0x1b6d249f8]
+                                                                                                                        1  ??? (Foundation + 190124) [0x19b1096ac]
+                                                                                                                          1  ??? (Foundation + 177912) [0x19b1066f8]
+                                                                                                                            1  ??? (Foundation + 118708) [0x19b0f7fb4]
+                                                                                                                              1  ??? (Foundation + 188288) [0x19b108f80]
+                                                                                                                                1  ??? (Foundation + 176468) [0x19b106154]
+                                                                                                                                  1  ??? (Foundation + 184536) [0x19b1080d8]
+                                                                                                                                    1  ??? (Foundation + 188288) [0x19b108f80]
+                                                                                                                                      1  ??? (LinkMetadata + 981644) [0x1b6de2a8c]
+                                                                                                                                        1  ??? (Foundation + 190124) [0x19b1096ac]
+                                                                                                                                          1  ??? (Foundation + 177912) [0x19b1066f8]
+                                                                                                                                            1  ??? (Foundation + 118708) [0x19b0f7fb4]
+                                                                                                                                              1  ??? (Foundation + 188288) [0x19b108f80]
+                                                                                                                                                1  ??? (LinkMetadata + 11752) [0x1b6cf5de8]
+                                                                                                                                                  1  ??? (Foundation + 190124) [0x19b1096ac]
+                                                                                                                                                    1  ??? (Foundation + 177912) [0x19b1066f8]
+                                                                                                                                                      1  ??? (Foundation + 118708) [0x19b0f7fb4]
+                                                                                                                                                        1  ??? (Foundation + 188288) [0x19b108f80]
+                                                                                                                                                          1  ??? (LinkMetadata + 203256) [0x1b6d249f8]
+                                                                                                                                                            1  ??? (Foundation + 190124) [0x19b1096ac]
+                                                                                                                                                              1  ??? (Foundation + 177912) [0x19b1066f8]
+                                                                                                                                                                1  ??? (Foundation + 118708) [0x19b0f7fb4]
+                                                                                                                                                                  1  ??? (Foundation + 188288) [0x19b108f80]
+                                                                                                                                                                    1  ??? (Foundation + 176468) [0x19b106154]
+                                                                                                                                                                      1  ??? (Foundation + 184536) [0x19b1080d8]
+                                                                                                                                                                        1  ??? (Foundation + 188288) [0x19b108f80]
+                                                                                                                                                                          1  ??? (LinkMetadata + 981644) [0x1b6de2a8c]
+                                                                                                                                                                            1  ??? (Foundation + 190124) [0x19b1096ac]
+                                                                                                                                                                              1  ??? (Foundation + 177912) [0x19b1066f8]
+                                                                                                                                                                                1  ??? (Foundation + 118708) [0x19b0f7fb4]
+                                                                                                                                                                                  1  ??? (Foundation + 188288) [0x19b108f80]
+                                                                                                                                                                                    1  ??? (LinkMetadata + 11800) [0x1b6cf5e18]
+                                                                                                                                                                                      1  ??? (Foundation + 190124) [0x19b1096ac]
+                                                                                                                                                                                        1  ??? (Foundation + 177912) [0x19b1066f8]
+                                                                                                                                                                                          1  ??? (Foundation + 118708) [0x19b0f7fb4]
+                                                                                                                                                                                            1  ??? (Foundation + 188288) [0x19b108f80]
+                                                                                                                                                                                              1  ??? (LinkMetadata + 12612) [0x1b6cf6144]
+                                                                                                                                                                                                1  ??? (Foundation + 190124) [0x19b1096ac]
+                                                                                                                                                                                                  1  ??? (Foundation + 177912) [0x19b1066f8]
+                                                                                                                                                                                                    1  ??? (Foundation + 118708) [0x19b0f7fb4]
+                                                                                                                                                                                                      1  ??? (Foundation + 188288) [0x19b108f80]
+                                                                                                                                                                                                        1  ??? (LinkMetadata + 7556) [0x1b6cf4d84]
+                                                                                                                                                                                                          1  ??? (Foundation + 190124) [0x19b1096ac]
+                                                                                                                                                                                                            1  ??? (Foundation + 177912) [0x19b1066f8]
+                                                                                                                                                                                                              1  ??? (Foundation + 118708) [0x19b0f7fb4]
+                                                                                                                                                                                                                1  ??? (Foundation + 188288) [0x19b108f80]
+                                                                                                                                                                                                                  1  ??? (Foundation + 1348232) [0x19b224288]
+                                                                                                                                                                                                                    1  ??? (Foundation + 190124) [0x19b1096ac]
+                                                                                                                                                                                                                      1  ??? (Foundation + 177912) [0x19b1066f8]
+                                                                                                                                                                                                                        1  ??? (Foundation + 118708) [0x19b0f7fb4]
+                                                                                                                                                                                                                          1  ??? (Foundation + 188288) [0x19b108f80]
+                                                                                                                                                                                                                            1  ??? (Foundation + 1348992) [0x19b224580]
+                                                                                                                                                                                                                              1  ??? (Foundation + 1348680) [0x19b224448]
+                                                                                                                                                                                                                                1  ??? (Foundation + 1349508) [0x19b224784]
+                                                                                                                                                                                                                                  1  ??? (Foundation + 1349856) [0x19b2248e0]
+                                                                                                                                                                                                                                    1  ??? (Foundation + 1350044) [0x19b22499c]
+                                                                                                                                                                                                                                      1  ??? (Foundation + 1350812) [0x19b224c9c]
+                                                                                                                                                                                                                                        1  ??? (Foundation + 1350352) [0x19b224ad0]
+                                                                                                                                                                                                                                          1  ??? (Foundation + 1352064) [0x19b225180]
+                                                                                                                                                                                                                                            1  ??? (Foundation + 1350968) [0x19b224d38]
+                                                                                                                                                                                                                                              1  ??? (Foundation + 822140) [0x19b1a3b7c]
+                                                                                                                                                                                                                                                1  ??? (Foundation + 821352) [0x19b1a3868]
+                                                                                                                                                                                                                                                  1  ??? (Foundation + 822912) [0x19b1a3e80]
+                                                                                                                                                                                                                                                    1  <on behalf of UNKNOWN [33] (originated by UNKNOWN [33])>
+                                                              1  ??? (AppPredictionInternal + 3324084) [0x1ea7d58b4]
+                                                                1  ??? (AppPredictionInternal + 3325588) [0x1ea7d5e94]
+                                                                  1  ??? (Foundation + 386276) [0x19b1394e4]
+                                                                    1  ??? (Foundation + 2665240) [0x19b365b18]
+                                                                      1  ??? (CoreFoundation + 90620) [0x19c4781fc]
+                                                                        1  ??? (CoreFoundation + 90352) [0x19c4780f0]
+                                                                          1  ??? (CoreFoundation + 155480) [0x19c487f58]
+                                                                            1  ??? (libobjc.A.dylib + 33528) [0x1999ec2f8]
+                                                                              1  <on behalf of UNKNOWN [33] (originated by UNKNOWN [33])>
+                                          1  ??? (AppPredictionInternal + 3059180) [0x1ea794dec]
+                                            1  ??? (AppPredictionInternal + 3060140) [0x1ea7951ac]
+                                              1  ??? (AppPredictionInternal + 737312) [0x1ea55e020]
+                                                1  ??? (BiomePubSub + 13060) [0x1c6dc3304]
+                                                  1  ??? (BiomePubSub + 11548) [0x1c6dc2d1c]
+                                                    1  ??? (BiomePubSub + 8168) [0x1c6dc1fe8]
+                                                      1  ??? (BiomePubSub + 12608) [0x1c6dc3140]
+                                                        1  ??? (BiomeStreams + 27936) [0x1a807bd20]
+                                                          1  ??? (BiomeStorage + 29228) [0x1c6e2022c]
+                                                            1  ??? (BiomeStorage + 30048) [0x1c6e20560]
+                                                              1  ??? (BiomeStorage + 31124) [0x1c6e20994]
+                                                                1  ??? (BiomeStorage + 42328) [0x1c6e23558]
+                                                                  1  ??? (ProactiveSupport + 7976) [0x1bd373f28]
+                                                                    1  ??? (ProactiveSupport + 7816) [0x1bd373e88]
+                                                                      1  ??? (BiomeStorage + 42684) [0x1c6e236bc]
+                                                                        1  ??? (BiomeStorage + 40828) [0x1c6e22f7c]
+                                                                          1  ??? (BiomeStorage + 26464) [0x1c6e1f760]
+                                                                            1  ??? (BiomeStorage + 26968) [0x1c6e1f958]
+                                                                              1  ??? (BiomeFoundation + 11692) [0x1cca56dac]
+                                                                                1  ??? (BiomeFoundation + 13464) [0x1cca57498]
+                                                                                  1  ??? (BiomeFoundation + 12864) [0x1cca57240]
+                                                                                    1  ??? (BiomeFoundation + 26752) [0x1cca5a880]
+                                                                                      1  ??? (BiomeFoundation + 15408) [0x1cca57c30]
+                                                                                        1  ??? (BiomeFoundation + 25752) [0x1cca5a498]
+                                                                                          1  ??? (libsystem_kernel.dylib + 26340) [0x1ed2d36e4]
+                                                                                            1  <on behalf of UNKNOWN [33] (originated by UNKNOWN [33])>
+                                        2  ??? (AppPredictionInternal + 3049512) [0x1ea792828]
+                                          1  ??? (AppPredictionInternal + 3053948) [0x1ea79397c]
+                                            1  ??? (AppPredictionInternal + 3056360) [0x1ea7942e8]
+                                              1  ??? (AppPredictionInternal + 597724) [0x1ea53bedc]
+                                                1  ??? (AppPredictionInternal + 591704) [0x1ea53a758]
+                                                  1  ??? (AppPredictionInternal + 595484) [0x1ea53b61c]
+                                                    1  ??? (AppPredictionInternal + 596384) [0x1ea53b9a0]
+                                                      1  ??? (BiomePubSub + 13060) [0x1c6dc3304]
+                                                        1  ??? (BiomePubSub + 11548) [0x1c6dc2d1c]
+                                                          1  ??? (BiomePubSub + 8168) [0x1c6dc1fe8]
+                                                            1  ??? (BiomePubSub + 12608) [0x1c6dc3140]
+                                                              1  ??? (BiomeStreams + 27936) [0x1a807bd20]
+                                                                1  ??? (BiomeStorage + 29228) [0x1c6e2022c]
+                                                                  1  ??? (BiomeStorage + 30048) [0x1c6e20560]
+                                                                    1  ??? (BiomeStorage + 31088) [0x1c6e20970]
+                                                                      1  ??? (BiomeStorage + 31612) [0x1c6e20b7c]
+                                                                        1  ??? (BiomeStorage + 36752) [0x1c6e21f90]
+                                                                          1  ??? (libsystem_malloc.dylib + 76140) [0x1acb1396c]
+                                                                            1  <on behalf of UNKNOWN [33] (originated by UNKNOWN [33])>
+                                          1  ??? (AppPredictionInternal + 3053712) [0x1ea793890]
+                                            1  ??? (AppPredictionInternal + 3054696) [0x1ea793c68]
+                                              1  ??? (AppPredictionInternal + 3055488) [0x1ea793f80]
+                                                1  ??? (AppPredictionInternal + 1956080) [0x1ea6878f0]
+                                                  1  ??? (AppPredictionInternal + 49268) [0x1ea4b6074]
+                                                    1  ??? (AppPredictionInternal + 50240) [0x1ea4b6440]
+                                                      1  ??? (AppPredictionInternal + 51352) [0x1ea4b6898]
+                                                        1  ??? (AppPredictionInternal + 51668) [0x1ea4b69d4]
+                                                          1  ??? (libdispatch.dylib + 71464) [0x1a440e728]
+                                                            1  ??? (libdispatch.dylib + 112004) [0x1a4418584]
+                                                              1  ??? (AppPredictionInternal + 182648) [0x1ea4d6978]
+                                                                1  ??? (AppPredictionInternal + 68636) [0x1ea4bac1c]
+                                                                  1  ??? (CoreDuet + 64724) [0x1a8660cd4]
+                                                                    1  ??? (CoreDuet + 68964) [0x1a8661d64]
+                                                                      1  ??? (libdispatch.dylib + 71464) [0x1a440e728]
+                                                                        1  ??? (libdispatch.dylib + 112004) [0x1a4418584]
+                                                                          1  ??? (CoreDuet + 71924) [0x1a86628f4]
+                                                                            1  ??? (CoreDuet + 69452) [0x1a8661f4c]
+                                                                              1  ??? (CoreDuet + 72496) [0x1a8662b30]
+                                                                                1  ??? (CoreDuet + 87904) [0x1a8666760]
+                                                                                  1  ??? (CoreDuet + 45064) [0x1a865c008]
+                                                                                    1  ??? (CoreDuet + 46752) [0x1a865c6a0]
+                                                                                      1  ??? (CoreDuet + 964972) [0x1a873c96c]
+                                                                                        1  ??? (CoreData + 501024) [0x1a46ba520]
+                                                                                          1  ??? (CoreData + 30608) [0x1a4647790]
+                                                                                            1  ??? (libdispatch.dylib + 71464) [0x1a440e728]
+                                                                                              1  ??? (libdispatch.dylib + 112004) [0x1a4418584]
+                                                                                                1  ??? (CoreData + 30908) [0x1a46478bc]
+                                                                                                  1  ??? (CoreData + 425600) [0x1a46a7e80]
+                                                                                                    1  ??? (CoreData + 513152) [0x1a46bd480]
+                                                                                                      1  ??? (CoreData + 50424) [0x1a464c4f8]
+                                                                                                        1  ??? (libdispatch.dylib + 71464) [0x1a440e728]
+                                                                                                          1  ??? (libdispatch.dylib + 112004) [0x1a4418584]
+                                                                                                            1  ??? (CoreData + 50704) [0x1a464c610]
+                                                                                                              1  ??? (CoreData + 513776) [0x1a46bd6f0]
+                                                                                                                1  ??? (CoreData + 474212) [0x1a46b3c64]
+                                                                                                                  1  ??? (CoreData + 191420) [0x1a466ebbc]
+                                                                                                                    1  ??? (CoreData + 192228) [0x1a466eee4]
+                                                                                                                      1  ??? (libsqlite3.dylib + 176792) [0x1ca934298]
+                                                                                                                        1  ??? (libsqlite3.dylib + 216324) [0x1ca93dd04]
+                                                                                                                          1  <on behalf of UNKNOWN [33] (originated by UNKNOWN [33])>
+
+  Binary Images:
+           0x104d00000 -                ???  duetexpertd             <427539BC-5A1A-3B29-AD74-C015B6009527>  /usr/libexec/duetexpertd
+           0x1999e4000 -        0x199a35bb3  libobjc.A.dylib         <E8825548-D148-3EE2-8076-39EA9CB11129>  /usr/lib/libobjc.A.dylib
+           0x19b0db000 -        0x19bd4f05f  Foundation              <C031896B-2EF1-3D89-966A-0B52D54BCEEE>  /System/Library/Frameworks/Foundation.framework/Foundation
+           0x19c462000 -        0x19c9defff  CoreFoundation          <AE3C9338-0166-397A-9643-356B14F6EE58>  /System/Library/Frameworks/CoreFoundation.framework/CoreFoundation
+           0x1a43fd000 -        0x1a4442b3f  libdispatch.dylib       <B62778F7-5827-3A7B-A96D-A24F7BE95416>  /usr/lib/system/libdispatch.dylib
+           0x1a4640000 -        0x1a4a3897f  CoreData                <80D683C7-B791-3F93-98F7-E53306D5F056>  /System/Library/Frameworks/CoreData.framework/CoreData
+           0x1a8075000 -        0x1a85ffd1f  BiomeStreams            <327082D3-5098-38F2-9FC5-B1DD7DF75880>  /System/Library/PrivateFrameworks/BiomeStreams.framework/BiomeStreams
+           0x1a8651000 -        0x1a887e31f  CoreDuet                <EA1926EC-D3B6-3588-9842-81CBF73EF964>  /System/Library/PrivateFrameworks/CoreDuet.framework/CoreDuet
+           0x1acb01000 -        0x1acb40fef  libsystem_malloc.dylib  <23C37642-B23B-34A8-BD54-2AC0B5F36047>  /usr/lib/system/libsystem_malloc.dylib
+           0x1b6cf3000 -        0x1b6e3eaff  LinkMetadata            <E0F8BCF3-B8F0-37E4-87A7-E817EFED94B2>  /System/Library/PrivateFrameworks/LinkMetadata.framework/LinkMetadata
+           0x1bd372000 -        0x1bd3fc4bf  ProactiveSupport        <D29016A4-427F-3DA0-BBEA-5D32460406EA>  /System/Library/PrivateFrameworks/ProactiveSupport.framework/ProactiveSupport
+           0x1be4ac000 -        0x1be5d457f  LinkServices            <1591A616-9F9B-3B39-B1A7-9125CAD48AEB>  /System/Library/PrivateFrameworks/LinkServices.framework/LinkServices
+           0x1c6dc0000 -        0x1c6e1841f  BiomePubSub             <93E22170-A411-3EBE-8373-4999858AE6AD>  /System/Library/PrivateFrameworks/BiomePubSub.framework/BiomePubSub
+           0x1c6e19000 -        0x1c6e5763f  BiomeStorage            <CBEB67CF-F572-386D-ADA8-B9C5D178FFCE>  /System/Library/PrivateFrameworks/BiomeStorage.framework/BiomeStorage
+           0x1ca909000 -        0x1caa89683  libsqlite3.dylib        <12F6BE8D-088A-385D-AA07-2827085C51DA>  /usr/lib/libsqlite3.dylib
+           0x1cca54000 -        0x1ccaa477f  BiomeFoundation         <B0A11EF6-FCFA-364D-BFF6-198CD81641FD>  /System/Library/PrivateFrameworks/BiomeFoundation.framework/BiomeFoundation
+           0x1ea4aa000 -        0x1eaaf785f  AppPredictionInternal   <4A7C2ACA-A4A4-3ACC-AF22-D67A6BBA37E5>  /System/Library/PrivateFrameworks/AppPredictionInternal.framework/AppPredictionInternal
+           0x1ed2cd000 -        0x1ed306ebf  libsystem_kernel.dylib  <A9A7ECBD-24DD-37E6-BB23-ECBFD9A87E33>  /usr/lib/system/libsystem_kernel.dylib
+           0x226904000 -        0x2269103f3  libsystem_pthread.dylib <1EE19220-0859-3CBC-BDEB-DF37CA2E8E4F>  /usr/lib/system/libsystem_pthread.dylib
+           0x22694f000 -        0x226996dbf  libxpc.dylib            <6E4F2F21-192A-30E8-A3AD-9915ADD1EBD2>  /usr/lib/system/libxpc.dylib
+
+
+Powerstats for:   kernel_task
+UUID:             FFB756E3-B8C5-3D8C-9C06-CF86AEB0BC62
+Version:          Darwin Kernel Version 24.6.0: Tue Jul 15 21:54:59 PDT 2025; root:xnu-11417.140.69~16/RELEASE_ARM64_T8110
+Resource Coalition: 1 sample 1
+Architecture:     arm64
+Start time:       2025-08-24 01:08:45.109 +0200
+End time:         2025-08-24 01:08:45.109 +0200
+Num samples:      1 (14%)
+Primary state:    1 samples Non-Frontmost App, Non-Suppressed, Kernel mode, Effective Thread QoS Unspecified, Requested Thread QoS Unspecified, Override Thread QoS Unspecified, e-core
+User Activity:    1 samples Idle, 0 samples Active
+Power Source:     0 samples on Battery, 1 samples on AC
+ *1  ??? (<FFB756E3-B8C5-3D8C-9C06-CF86AEB0BC62> + 2512892) [0xfffffff0081317fc]
+   *1  ??? (<FFB756E3-B8C5-3D8C-9C06-CF86AEB0BC62> + 2503812) [0xfffffff00812f484]
+
+  Binary Images:
+   *0xfffffff007ecc000 - 0xfffffff0086b3fff  ??? (24.6.0) <FFB756E3-B8C5-3D8C-9C06-CF86AEB0BC62>__TEXT_EXEC

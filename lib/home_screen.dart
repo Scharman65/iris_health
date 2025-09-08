@@ -26,8 +26,10 @@ class HomeScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('Возраст: ${diagnosis.age}'),
-                  Text('Пол: ${diagnosis.gender == Gender.male ? 'Мужской' : 'Женский'}'),
-                  Text('Дата: ${diagnosis.dateTime.toLocal().toString().split(' ')[0]}'),
+                  Text(
+                      'Пол: ${diagnosis.gender == Gender.male ? 'Мужской' : 'Женский'}'),
+                  Text(
+                      'Дата: ${diagnosis.date.toLocal().toString().split(' ')[0]}'),
                 ],
               ),
               trailing: const Icon(Icons.arrow_forward_ios, size: 16),
@@ -35,7 +37,8 @@ class HomeScreen extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => DiagnosisSummaryScreen(diagnosis: diagnosis),
+                    builder: (_) =>
+                        DiagnosisSummaryScreen(diagnosis: diagnosis),
                   ),
                 );
               },

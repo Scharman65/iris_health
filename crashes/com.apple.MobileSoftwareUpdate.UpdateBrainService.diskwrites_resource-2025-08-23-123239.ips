@@ -1,0 +1,224 @@
+{"app_name":"com.apple.MobileSoftwareUpdate.UpdateBrainService","timestamp":"2025-08-23 12:32:39.00 +0200","app_version":"1.0","slice_uuid":"0549733A-759A-3B30-B436-12E5CFEB670C","build_version":"1","bundleID":"com.apple.MobileSoftwareUpdate.UpdateBrainService","duration_ms":"8194591","share_with_app_devs":0,"is_first_party":0,"bug_type":"145","os_version":"iPhone OS 18.6 (22G86)","roots_installed":0,"name":"com.apple.MobileSoftwareUpdate.UpdateBrainService","incident_id":"9704136F-9601-4E21-9729-DABE8DB3AABD"}
+Date/Time:        2025-08-23 10:16:03.651 +0200
+End time:         2025-08-23 12:32:38.242 +0200
+OS Version:       iPhone OS 18.6 (Build 22G86)
+Architecture:     arm64e
+Report Version:   60
+Incident Identifier: 9704136F-9601-4E21-9729-DABE8DB3AABD
+
+Data Source:      Microstackshots
+Shared Cache:     F6A5A79D-6D6F-3104-A678-AAB495371756 slid base address 0x197f4c000, slide 0x17f4c000
+
+Command:          com.apple.MobileSoftwareUpdate.UpdateBrainService
+Path:             /private/var/db/com.apple.xpc.roleaccountd.staging/exec/16777224.41568.xpc/com.apple.MobileSoftwareUpdate.UpdateBrainService
+Identifier:       com.apple.MobileSoftwareUpdate.UpdateBrainService
+Version:          1.0 (1)
+Resource Coalition: "com.apple.mobile.softwareupdated"(59)
+On Behalf Of:     15 samples UNKNOWN [479] (15 samples originated by UNKNOWN [478])
+Architecture:     arm64
+Parent:           launchd [1]
+PID:              2436
+
+Event:            disk writes
+Action taken:     none
+Writes:           4294.97 MB of file backed memory dirtied over 8195 seconds (524.12 KB per second average), exceeding limit of 49.71 KB per second over 86400 seconds
+Writes limit:     4294.97 MB
+Limit duration:   86400s
+Writes caused:    4294.97 MB
+Writes duration:  8195s
+Duration:         8194.59s
+Duration Sampled: 7741.53s (event starts 453.06s before samples)
+Steps:            40 (10.49 MB/step)
+
+Hardware model:   iPhone14,2
+Active cpus:      6
+Memory size:      5.54 GB
+HW page size:     16384
+VM page size:     16384
+Shared cache residency: 16.54% (810.56 MB / 4900.67 MB)
+
+Advisory levels:  Battery -> 2, User -> 3, ThermalPressure -> 0, Combined -> 2
+Free disk space:  93.51 GB/119.09 GB, low space threshold 150 MB
+Vnodes Available: 65.42% (15702/24000, 12000 allocated, 12000 soft limit)
+Models:           none
+
+Preferred User Language: ru-ME
+Country Code:     ME
+Keyboards:        ru_RU Russian, en_GB QWERTY
+OS Cryptex File Extents: 1
+
+Heaviest stack for the target process:
+  15  ??? (libsystem_pthread.dylib + 2732) [0x224f74aac]
+  15  ??? (libsystem_pthread.dylib + 2512) [0x224f749d0]
+  15  ??? (libdispatch.dylib + 83276) [0x1a2a8154c]
+  15  ??? (libdispatch.dylib + 81328) [0x1a2a80db0]
+  15  ??? (libdispatch.dylib + 23508) [0x1a2a72bd4]
+  15  ??? (libdispatch.dylib + 25952) [0x1a2a73560]
+  15  ??? (libdispatch.dylib + 112004) [0x1a2a88584]
+  15  ??? (libdispatch.dylib + 70328) [0x1a2a7e2b8]
+  15  ??? (<A52A65A2-7A0F-3FDF-8BF3-EA0619EA02B3> + 220236) [0x1009adc4c]
+  15  ??? (<A52A65A2-7A0F-3FDF-8BF3-EA0619EA02B3> + 268896) [0x1009b9a60]
+  15  ??? (<A52A65A2-7A0F-3FDF-8BF3-EA0619EA02B3> + 223876) [0x1009aea84]
+  15  ??? (<A52A65A2-7A0F-3FDF-8BF3-EA0619EA02B3> + 212456) [0x1009abde8]
+  15  ??? (<A52A65A2-7A0F-3FDF-8BF3-EA0619EA02B3> + 248940) [0x1009b4c6c]
+  15  ??? (<A52A65A2-7A0F-3FDF-8BF3-EA0619EA02B3> + 171624) [0x1009a1e68]
+  15  ??? (<A52A65A2-7A0F-3FDF-8BF3-EA0619EA02B3> + 132640) [0x100998620]
+  15  ??? (<A52A65A2-7A0F-3FDF-8BF3-EA0619EA02B3> + 2097944) [0x100b78318]
+  15  ??? (<A52A65A2-7A0F-3FDF-8BF3-EA0619EA02B3> + 2088796) [0x100b75f5c]
+  15  ??? (<A52A65A2-7A0F-3FDF-8BF3-EA0619EA02B3> + 670832) [0x100a1bc70]
+  14  ??? (<A52A65A2-7A0F-3FDF-8BF3-EA0619EA02B3> + 2047784) [0x100b6bf28]
+  14  ??? (<A52A65A2-7A0F-3FDF-8BF3-EA0619EA02B3> + 643500) [0x100a151ac]
+  14  ??? (<A52A65A2-7A0F-3FDF-8BF3-EA0619EA02B3> + 643976) [0x100a15388]
+  14  ??? (libsystem_c.dylib + 45528) [0x1a2abe1d8]
+  14  ??? (libsystem_c.dylib + 18720) [0x1a2ab7920]
+  14  ??? (libsystem_c.dylib + 81568) [0x1a2ac6ea0]
+  14  ??? (libsystem_kernel.dylib + 29168) [0x1eb9441f0]
+
+
+Powerstats for:   com.apple.MobileSoftwareUpdate.UpdateBrainService (com.apple.MobileSoftwareUpdate.UpdateBrainService) [2436]
+UUID:             0549733A-759A-3B30-B436-12E5CFEB670C
+Path:             /private/var/db/com.apple.xpc.roleaccountd.staging/exec/16777224.41568.xpc/com.apple.MobileSoftwareUpdate.UpdateBrainService
+Identifier:       com.apple.MobileSoftwareUpdate.UpdateBrainService
+Version:          1.0 (1)
+Resource Coalition: 15 samples "com.apple.mobile.softwareupdated"(59)
+On Behalf Of:     15 samples UNKNOWN [479] (15 samples originated by UNKNOWN [478])
+Architecture:     arm64
+Parent:           launchd [1]
+UID:              0
+Sudden Term:      Tracked (allows idle exit)
+Footprint:        23.56 MB -> 5824 KB (-17.88 MB)
+Start time:       2025-08-23 12:32:38.158 +0200
+End time:         2025-08-23 12:32:38.240 +0200
+Num samples:      15 (38%)
+Num threads:      1
+Primary state:    15 samples Non-Frontmost App, Non-Suppressed, Kernel mode, Effective Thread QoS Utility, Requested Thread QoS Utility, Override Thread QoS Unspecified, e-core
+User Activity:    0 samples Idle, 15 samples Active
+Power Source:     15 samples on Battery, 0 samples on AC
+  15  ??? (libsystem_pthread.dylib + 2732) [0x224f74aac]
+    15  ??? (libsystem_pthread.dylib + 2512) [0x224f749d0]
+      15  ??? (libdispatch.dylib + 83276) [0x1a2a8154c]
+        15  ??? (libdispatch.dylib + 81328) [0x1a2a80db0]
+          15  ??? (libdispatch.dylib + 23508) [0x1a2a72bd4]
+            15  ??? (libdispatch.dylib + 25952) [0x1a2a73560]
+              15  ??? (libdispatch.dylib + 112004) [0x1a2a88584]
+                15  ??? (libdispatch.dylib + 70328) [0x1a2a7e2b8]
+                  15  ??? (<A52A65A2-7A0F-3FDF-8BF3-EA0619EA02B3> + 220236) [0x1009adc4c]
+                    15  ??? (<A52A65A2-7A0F-3FDF-8BF3-EA0619EA02B3> + 268896) [0x1009b9a60]
+                      15  ??? (<A52A65A2-7A0F-3FDF-8BF3-EA0619EA02B3> + 223876) [0x1009aea84]
+                        15  ??? (<A52A65A2-7A0F-3FDF-8BF3-EA0619EA02B3> + 212456) [0x1009abde8]
+                          15  ??? (<A52A65A2-7A0F-3FDF-8BF3-EA0619EA02B3> + 248940) [0x1009b4c6c]
+                            15  ??? (<A52A65A2-7A0F-3FDF-8BF3-EA0619EA02B3> + 171624) [0x1009a1e68]
+                              15  ??? (<A52A65A2-7A0F-3FDF-8BF3-EA0619EA02B3> + 132640) [0x100998620]
+                                15  ??? (<A52A65A2-7A0F-3FDF-8BF3-EA0619EA02B3> + 2097944) [0x100b78318]
+                                  15  ??? (<A52A65A2-7A0F-3FDF-8BF3-EA0619EA02B3> + 2088796) [0x100b75f5c]
+                                    15  ??? (<A52A65A2-7A0F-3FDF-8BF3-EA0619EA02B3> + 670832) [0x100a1bc70]
+                                      14  ??? (<A52A65A2-7A0F-3FDF-8BF3-EA0619EA02B3> + 2047784) [0x100b6bf28]
+                                        14  ??? (<A52A65A2-7A0F-3FDF-8BF3-EA0619EA02B3> + 643500) [0x100a151ac]
+                                          14  ??? (<A52A65A2-7A0F-3FDF-8BF3-EA0619EA02B3> + 643976) [0x100a15388]
+                                            14  ??? (libsystem_c.dylib + 45528) [0x1a2abe1d8]
+                                              14  ??? (libsystem_c.dylib + 18720) [0x1a2ab7920]
+                                                14  ??? (libsystem_c.dylib + 81568) [0x1a2ac6ea0]
+                                                  14  ??? (libsystem_kernel.dylib + 29168) [0x1eb9441f0]
+                                                    14  <on behalf of UNKNOWN [479] (originated by UNKNOWN [478])>
+                                      1   ??? (<A52A65A2-7A0F-3FDF-8BF3-EA0619EA02B3> + 2047684) [0x100b6bec4]
+                                        1   ??? (<A52A65A2-7A0F-3FDF-8BF3-EA0619EA02B3> + 643500) [0x100a151ac]
+                                          1   ??? (<A52A65A2-7A0F-3FDF-8BF3-EA0619EA02B3> + 643860) [0x100a15314]
+                                            1   ??? (libsystem_c.dylib + 45528) [0x1a2abe1d8]
+                                              1   ??? (libsystem_c.dylib + 18720) [0x1a2ab7920]
+                                                1   ??? (libsystem_c.dylib + 81568) [0x1a2ac6ea0]
+                                                  1   ??? (libsystem_kernel.dylib + 29168) [0x1eb9441f0]
+                                                    1   <on behalf of UNKNOWN [479] (originated by UNKNOWN [478])>
+
+  Binary Images:
+           0x100580000 -                ???  com.apple.MobileSoftwareUpdate.UpdateBrainService 1.0 (1) <0549733A-759A-3B30-B436-12E5CFEB670C>  /private/var/db/com.apple.xpc.roleaccountd.staging/exec/16777224.41568.xpc/com.apple.MobileSoftwareUpdate.UpdateBrainService
+           0x100978000 -                ???  ???                                                       <A52A65A2-7A0F-3FDF-8BF3-EA0619EA02B3>
+           0x1a2a6d000 -        0x1a2ab2b3f  libdispatch.dylib                                         <B62778F7-5827-3A7B-A96D-A24F7BE95416>  /usr/lib/system/libdispatch.dylib
+           0x1a2ab3000 -        0x1a2b326c3  libsystem_c.dylib                                         <335CD87D-234B-3FC1-82DB-943350D31A88>  /usr/lib/system/libsystem_c.dylib
+           0x1eb93d000 -        0x1eb976ebf  libsystem_kernel.dylib                                    <A9A7ECBD-24DD-37E6-BB23-ECBFD9A87E33>  /usr/lib/system/libsystem_kernel.dylib
+           0x224f74000 -        0x224f803f3  libsystem_pthread.dylib                                   <1EE19220-0859-3CBC-BDEB-DF37CA2E8E4F>  /usr/lib/system/libsystem_pthread.dylib
+
+
+Powerstats for:   locationd
+UUID:             C762B8BF-3821-383D-83CF-371EBB5B7129
+Path:             /usr/libexec/locationd
+Resource Coalition: 3 samples "com.apple.locationd"(91)
+On Behalf Of:     2 samples UNKNOWN [50, 70] (2 samples originated by UNKNOWN [50])
+Architecture:     arm64e
+Start time:       2025-08-23 12:24:58.571 +0200
+End time:         2025-08-23 12:29:37.495 +0200
+Num samples:      3 (8%)
+Primary state:    2 samples Non-Frontmost App, Non-Suppressed, Kernel mode, Effective Thread QoS Default, Requested Thread QoS Default, Override Thread QoS Unspecified, e-core
+User Activity:    2 samples Idle, 1 samples Active
+Power Source:     1 samples on Battery, 2 samples on AC
+  3  ??? (libsystem_pthread.dylib + 2732) [0x224f74aac]
+    3  ??? (libsystem_pthread.dylib + 2572) [0x224f74a0c]
+      3  ??? (libdispatch.dylib + 84576) [0x1a2a81a60]
+        3  ??? (libdispatch.dylib + 86492) [0x1a2a821dc]
+          3  ??? (libdispatch.dylib + 44460) [0x1a2a77dac]
+            3  ??? (libdispatch.dylib + 41272) [0x1a2a77138]
+              3  ??? (libdispatch.dylib + 44512) [0x1a2a77de0]
+                3  ??? (libdispatch.dylib + 41680) [0x1a2a772d0]
+                  3  ??? (libdispatch.dylib + 112004) [0x1a2a88584]
+                    3  ??? (libdispatch.dylib + 6828) [0x1a2a6eaac]
+                      3  ??? (LocationSupport + 5236) [0x1bcc46474]
+                        1  ??? (CoreFoundation + 661964) [0x19ab739cc]
+                          1  ??? (CoreFoundation + 192428) [0x19ab00fac]
+                            1  ??? (CoreFoundation + 194868) [0x19ab01934]
+                              1  ??? (locationd + 70264) [0x1007e1278]
+                                1  ??? (locationd + 2225296) [0x1009ef490]
+                                  1  ??? (locationd + 2226036) [0x1009ef774]
+                                    1  ??? (locationd + 2462652) [0x100a293bc]
+                                      1  ??? (locationd + 2431224) [0x100a218f8]
+                                        1  ??? (locationd + 2463692) [0x100a297cc]
+                                          1  ??? (locationd + 2343352) [0x100a0c1b8]
+                                            1  ??? (locationd + 2342512) [0x100a0be70]
+                                              1  ??? (locationd + 15280900) [0x101662b04]
+                                                1  ??? (locationd + 5490572) [0x100d0c78c]
+                                                  1  ??? (locationd + 1753632) [0x10097c220]
+                                                    1  ??? (Foundation + 895040) [0x199825840]
+                                                      1  ??? (Foundation + 896424) [0x199825da8]
+                                                        1  ??? (Foundation + 915120) [0x19982a6b0]
+                                                          1  ??? (libsystem_kernel.dylib + 20680) [0x1eb9420c8]
+                                                            1  <on behalf of UNKNOWN [50] (originated by UNKNOWN [50])>
+                        1  ??? (locationd + 7175896) [0x100ea7ed8]
+                          1  ??? (locationd + 7252876) [0x100ebab8c]
+                            1  ??? (locationd + 18781412) [0x1019b94e4]
+                              1  ??? (locationd + 1528724) [0x100945394]
+                                1  ??? (locationd + 1528936) [0x100945468]
+                                  1  ??? (libsqlite3.dylib + 31124) [0x1c8f80994]
+                                    1  ??? (libsqlite3.dylib + 176792) [0x1c8fa4298]
+                                      1  ??? (libsqlite3.dylib + 221360) [0x1c8faf0b0]
+                                        1  ??? (libsqlite3.dylib + 86100) [0x1c8f8e054]
+                                          1  ??? (libsqlite3.dylib + 245460) [0x1c8fb4ed4]
+                                            1  ??? (libsqlite3.dylib + 246524) [0x1c8fb52fc]
+                                              1  ??? (libsqlite3.dylib + 308620) [0x1c8fc458c]
+                                                1  ??? (libsqlite3.dylib + 632308) [0x1c90135f4]
+                                                  1  ??? (libsqlite3.dylib + 309376) [0x1c8fc4880]
+                                                    1  ??? (libsystem_kernel.dylib + 27292) [0x1eb943a9c]
+                                                      1  <on behalf of UNKNOWN [70] (originated by UNKNOWN [50]), Effective Thread QoS Background, Requested Thread QoS Background>
+                        1  ??? (locationd + 559584) [0x1008589e0]
+                          1  ??? (locationd + 559040) [0x1008587c0]
+                            1  ??? (locationd + 1007696) [0x1008c6050]
+                              1  ??? (locationd + 1006620) [0x1008c5c1c]
+                                1  ??? (locationd + 1009000) [0x1008c6568]
+                                  1  ??? (locationd + 1004336) [0x1008c5330]
+                                    1  ??? (libsqlite3.dylib + 31124) [0x1c8f80994]
+                                      1  ??? (libsqlite3.dylib + 176792) [0x1c8fa4298]
+                                        1  ??? (libsqlite3.dylib + 221360) [0x1c8faf0b0]
+                                          1  ??? (libsqlite3.dylib + 86100) [0x1c8f8e054]
+                                            1  ??? (libsqlite3.dylib + 245460) [0x1c8fb4ed4]
+                                              1  ??? (libsqlite3.dylib + 246524) [0x1c8fb52fc]
+                                                1  ??? (libsqlite3.dylib + 308620) [0x1c8fc458c]
+                                                  1  ??? (libsqlite3.dylib + 632308) [0x1c90135f4]
+                                                    1  ??? (libsqlite3.dylib + 309376) [0x1c8fc4880]
+                                                      1  ??? (libsystem_kernel.dylib + 27292) [0x1eb943a9c]
+
+  Binary Images:
+           0x1007d0000 -                ???  locationd               <C762B8BF-3821-383D-83CF-371EBB5B7129>  /usr/libexec/locationd
+           0x19974b000 -        0x19a3bf05f  Foundation              <C031896B-2EF1-3D89-966A-0B52D54BCEEE>  /System/Library/Frameworks/Foundation.framework/Foundation
+           0x19aad2000 -        0x19b04efff  CoreFoundation          <AE3C9338-0166-397A-9643-356B14F6EE58>  /System/Library/Frameworks/CoreFoundation.framework/CoreFoundation
+           0x1a2a6d000 -        0x1a2ab2b3f  libdispatch.dylib       <B62778F7-5827-3A7B-A96D-A24F7BE95416>  /usr/lib/system/libdispatch.dylib
+           0x1bcc45000 -        0x1bcc7ce9f  LocationSupport         <8CB1EA4D-CE2F-32C5-823B-4733CA57EB76>  /System/Library/PrivateFrameworks/LocationSupport.framework/LocationSupport
+           0x1c8f79000 -        0x1c90f9683  libsqlite3.dylib        <12F6BE8D-088A-385D-AA07-2827085C51DA>  /usr/lib/libsqlite3.dylib
+           0x1eb93d000 -        0x1eb976ebf  libsystem_kernel.dylib  <A9A7ECBD-24DD-37E6-BB23-ECBFD9A87E33>  /usr/lib/system/libsystem_kernel.dylib
+           0x224f74000 -        0x224f803f3  libsystem_pthread.dylib <1EE19220-0859-3CBC-BDEB-DF37CA2E8E4F>  /usr/lib/system/libsystem_pthread.dylib

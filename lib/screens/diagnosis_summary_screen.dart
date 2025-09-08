@@ -1,109 +1,137 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
-import 'package:iris_health/models/diagnosis_model.dart';
-import 'history_screen.dart';
 
 class DiagnosisSummaryScreen extends StatelessWidget {
-  final Diagnosis diagnosis;
-  final Map<String, dynamic>? aiResult;
-
   const DiagnosisSummaryScreen({
     super.key,
-    required this.diagnosis,
+    required this.examId,
+    required this.leftPath,
+    required this.rightPath,
     this.aiResult,
+    this.age,
+    this.gender,
   });
+
+  /// Идентификатор обследования
+  final String examId;
+
+  /// Пути к сохранённым кадрам (jpg внутри sandbox приложения)
+  final String leftPath;
+  final String rightPath;
+
+  /// Опциональные данные из ИИ (или заглушки)
+  final Map<String, dynamic>? aiResult;
+
+  /// Опциональные демографические параметры
+  final int? age;
+  final String? gender;
 
   @override
   Widget build(BuildContext context) {
-    final zones = aiResult?['zones'] ?? [];
-    final summary = aiResult?['summary'] ?? {};
-    final dateStr = DateFormat('dd.MM.yyyy HH:mm').format(diagnosis.date);
-
     return Scaffold(
-      appBar: AppBar(title: const Text('Результат обследования')),
-      body: Padding(
+      appBar: AppBar(
+        title:
+            Text('Итоги • ${examId.isNotEmpty ? examId.substring(0, examId.length.clamp(0, 8)) : ""}'),
+      ),
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
-        child: ListView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('ID: ${diagnosis.id}', style: const TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            Text('Возраст: ${diagnosis.age}'),
-            Text('Пол: ${diagnosis.gender == Gender.male ? 'Мужчина' : 'Женщина'}'),
-            Text('Дата: $dateStr'),
-            const Divider(height: 32),
-
-            const Text('Левый глаз:', style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            _buildEyeImage(diagnosis.leftEyeImagePath),
-            const SizedBox(height: 16),
-
-            const Text('Правый глаз:', style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            _buildEyeImage(diagnosis.rightEyeImagePath),
-            const Divider(height: 32),
-
-            if (aiResult != null) ...[
-              const Text('Анализ по зонам:', style: TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              ...zones.map<Widget>((zone) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
-                  child: Text(
-                    '${zone['organ']} (${zone['position']}): ${zone['findings']} (Степень ${zone['severity']})',
-                  ),
-                );
-              }).toList(),
-              const SizedBox(height: 16),
-              const Text('Диагноз:', style: TextStyle(fontWeight: FontWeight.bold)),
-              Text(summary['diagnosis'] ?? '—'),
+            if (age != null || (gender != null && gender!.isNotEmpty)) ...[
+              Text(
+                'Профиль: '
+                '${age != null ? 'возраст $age' : ''}'
+                '${(age != null && gender != null && gender!.isNotEmpty) ? ', ' : ''}'
+                '${(gender != null && gender!.isNotEmpty) ? 'пол $gender' : ''}',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
               const SizedBox(height: 12),
-              const Text('Рекомендации:', style: TextStyle(fontWeight: FontWeight.bold)),
-              ...(summary['recommendations'] as List<dynamic>? ?? [])
-                  .map((r) => Row(
-                        children: [
-                          const Text('• ', style: TextStyle(fontWeight: FontWeight.bold)),
-                          Expanded(child: Text(r)),
-                        ],
-                      ))
-                  .toList(),
-            ] else
-              const Text('AI-результат отсутствует', style: TextStyle(fontStyle: FontStyle.italic)),
-
-            const SizedBox(height: 24),
+            ],
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                ElevatedButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Готово'),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const HistoryScreen()),
-                    );
-                  },
-                  child: const Text('История'),
-                ),
+                Expanded(child: _photoCard(leftPath, 'Левый глаз')),
+                const SizedBox(width: 12),
+                Expanded(child: _photoCard(rightPath, 'Правый глаз')),
               ],
             ),
+            const SizedBox(height: 16),
+            _resultBlock(context),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildEyeImage(String path) {
-    if (File(path).existsSync()) {
-      return Image.file(File(path), height: 150);
-    } else {
-      return Container(
-        height: 150,
-        color: Colors.grey[300],
-        child: const Center(child: Text('Фото отсутствует')),
+  Widget _photoCard(String path, String title) {
+    final exists = File(path).existsSync();
+    final image = exists
+        ? Image.file(
+            File(path),
+            height: 220,
+            fit: BoxFit.contain,
+          )
+        : const SizedBox(
+            height: 220,
+            child: Center(child: Icon(Icons.image_not_supported)),
+          );
+
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: [
+          Container(color: Colors.black, child: image),
+          Padding(
+            padding: const EdgeInsets.all(8),
+            child: Text(title),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _resultBlock(BuildContext context) {
+    if (aiResult == null) {
+      return Text(
+        'Результаты анализа недоступны.',
+        style: Theme.of(context).textTheme.bodyMedium,
       );
     }
+
+    final summary = aiResult!['summary'] as String? ?? 'Нет сводки.';
+    final findings = (aiResult!['findings'] as List?) ?? const [];
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('Результаты анализа', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 8),
+            Text(summary),
+            const SizedBox(height: 12),
+            if (findings.isNotEmpty) ...[
+              const Divider(),
+              ...findings.map((f) {
+                final m = (f as Map).cast<String, dynamic>();
+                final zone = m['zone']?.toString() ?? '—';
+                final score = (m['score'] is num) ? (m['score'] as num).toStringAsFixed(2) : '—';
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  child: Row(
+                    children: [
+                      Expanded(child: Text(zone)),
+                      Text(score),
+                    ],
+                  ),
+                );
+              }),
+            ],
+          ],
+        ),
+      ),
+    );
   }
 }
+

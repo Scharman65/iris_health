@@ -1,0 +1,505 @@
+{"duration_ms":"92886","share_with_app_devs":0,"roots_installed":0,"bug_type":"202","os_version":"iPhone OS 18.6 (22G86)","slice_uuid":"427539BC-5A1A-3B29-AD74-C015B6009527","is_first_party":0,"incident_id":"B5E18174-0E41-41FF-8678-4DA884B1D0AF","timestamp":"2025-08-20 15:45:04.00 +0200","app_name":"duetexpertd","name":"duetexpertd"}
+Date/Time:        2025-08-20 15:43:28.016 +0200
+End time:         2025-08-20 15:45:00.902 +0200
+OS Version:       iPhone OS 18.6 (Build 22G86)
+Architecture:     arm64e
+Report Version:   60
+Incident Identifier: B5E18174-0E41-41FF-8678-4DA884B1D0AF
+
+Data Source:      Microstackshots
+Shared Cache:     F6A5A79D-6D6F-3104-A678-AAB495371756 slid base address 0x18df98000, slide 0xdf98000
+
+Command:          duetexpertd
+Path:             /usr/libexec/duetexpertd
+Resource Coalition: "com.apple.duetexpertd"(381)
+On Behalf Of:     5 samples UNKNOWN [31] (5 samples originated by UNKNOWN [31])
+Architecture:     arm64e
+Parent:           UNKNOWN [1]
+PID:              424
+
+Event:            cpu usage
+Action taken:     none
+CPU:              90 seconds cpu time over 93 seconds (97% cpu average), exceeding limit of 50% cpu over 180 seconds
+CPU limit:        90s
+Limit duration:   180s
+CPU used:         90s
+CPU duration:     93s
+Duration:         92.89s
+Duration Sampled: 68.90s (event starts 21.92s before samples, event ends 2.06s after samples)
+Steps:            6
+
+Hardware model:   iPhone14,2
+Active cpus:      6
+Memory size:      5.54 GB
+HW page size:     16384
+VM page size:     16384
+Shared cache residency: 21.20% (1039.14 MB / 4900.67 MB)
+
+Time Since Boot:  54546s
+Time Awake Since Boot: 6750s
+Time Since Wake:  867s
+
+Total CPU Time:   67.946s
+Advisory levels:  Battery -> 3, User -> 3, ThermalPressure -> 0, Combined -> 3
+Free disk space:  93.83 GB/119.09 GB, low space threshold 150 MB
+Vnodes Available: 65.75% (15779/24000, 12000 allocated, 12000 soft limit)
+Models:           none
+
+Preferred User Language: ru-ME
+Country Code:     ME
+Keyboards:        ru_RU Russian, en_GB QWERTY
+OS Cryptex File Extents: 1
+
+Heaviest stack for the target process:
+  4  ??? (libsystem_pthread.dylib + 2732) [0x21afc0aac]
+  4  ??? (libsystem_pthread.dylib + 2572) [0x21afc0a0c]
+  4  ??? (libdispatch.dylib + 84576) [0x198acda60]
+  4  ??? (libdispatch.dylib + 86492) [0x198ace1dc]
+  4  ??? (libdispatch.dylib + 44460) [0x198ac3dac]
+  4  ??? (libdispatch.dylib + 41272) [0x198ac3138]
+  4  ??? (libdispatch.dylib + 128404) [0x198ad8594]
+  4  ??? (libdispatch.dylib + 112052) [0x198ad45b4]
+  4  ??? (libxpc.dylib + 74240) [0x21b01d200]
+  4  ??? (libxpc.dylib + 129804) [0x21b02ab0c]
+  4  ??? (libxpc.dylib + 219316) [0x21b0408b4]
+  4  ??? (libxpc.dylib + 219660) [0x21b040a0c]
+  4  ??? (libxpc.dylib + 218236) [0x21b04047c]
+  4  ??? (AppPredictionInternal + 3506012) [0x1deebdf5c]
+  4  ??? (AppPredictionInternal + 3506656) [0x1deebe1e0]
+  4  ??? (AppPredictionInternal + 1990944) [0x1ded4c120]
+  4  ??? (AppPredictionInternal + 3047884) [0x1dee4e1cc]
+  4  ??? (AppPredictionInternal + 3048272) [0x1dee4e350]
+  4  ??? (AppPredictionInternal + 3048648) [0x1dee4e4c8]
+  4  ??? (AppPredictionInternal + 3049552) [0x1dee4e850]
+  4  ??? (AppPredictionInternal + 3059412) [0x1dee50ed4]
+  4  ??? (AppPredictionInternal + 3060332) [0x1dee5126c]
+  4  ??? (AppPredictionInternal + 599072) [0x1debf8420]
+  4  ??? (AppPredictionInternal + 593840) [0x1debf6fb0]
+  4  ??? (AppPredictionInternal + 596384) [0x1debf79a0]
+  4  ??? (BiomePubSub + 13060) [0x1bb47f304]
+  4  ??? (BiomePubSub + 11548) [0x1bb47ed1c]
+  4  ??? (BiomePubSub + 8144) [0x1bb47dfd0]
+  4  ??? (AppPredictionInternal + 596704) [0x1debf7ae0]
+  4  ??? (AppPredictionInternal + 3324544) [0x1dee91a80]
+  3  ??? (AppPredictionInternal + 3324084) [0x1dee918b4]
+  3  ??? (AppPredictionInternal + 3325588) [0x1dee91e94]
+  2  ??? (Foundation + 386248) [0x18f7f54c8]
+  2  ??? (Foundation + 390768) [0x18f7f6670]
+  1  ??? (LinkMetadata + 169292) [0x1ab3d854c]
+  1  ??? (Foundation + 390768) [0x18f7f6670]
+  1  ??? (Foundation + 168872) [0x18f7c03a8]
+  1  ??? (Foundation + 389144) [0x18f7f6018]
+  1  ??? (Foundation + 390768) [0x18f7f6670]
+  1  ??? (LinkMetadata + 981492) [0x1ab49e9f4]
+  1  ??? (Foundation + 390768) [0x18f7f6670]
+  1  ??? (LinkMetadata + 195076) [0x1ab3dea04]
+  1  ??? (Foundation + 390768) [0x18f7f6670]
+  1  ??? (LinkMetadata + 194000) [0x1ab3de5d0]
+  1  ??? (Foundation + 390768) [0x18f7f6670]
+  1  ??? (Foundation + 168872) [0x18f7c03a8]
+  1  ??? (Foundation + 389144) [0x18f7f6018]
+  1  ??? (Foundation + 390768) [0x18f7f6670]
+  1  ??? (LinkMetadata + 981492) [0x1ab49e9f4]
+  1  ??? (Foundation + 390768) [0x18f7f6670]
+  1  ??? (LinkMetadata + 195156) [0x1ab3dea54]
+  1  ??? (Foundation + 390768) [0x18f7f6670]
+  1  ??? (LinkMetadata + 195328) [0x1ab3deb00]
+  1  ??? (Foundation + 390768) [0x18f7f6670]
+  1  ??? (LinkMetadata + 171184) [0x1ab3d8cb0]
+  1  ??? (Foundation + 390768) [0x18f7f6670]
+  1  ??? (Foundation + 390768) [0x18f7f6670]
+  1  ??? (Foundation + 2454328) [0x18f9ee338]
+  1  ??? (Foundation + 2453308) [0x18f9edf3c]
+  1  ??? (Foundation + 2454992) [0x18f9ee5d0]
+  1  ??? (Foundation + 2454636) [0x18f9ee46c]
+  1  ??? (Foundation + 1185868) [0x18f8b884c]
+  1  ??? (Foundation + 2456596) [0x18f9eec14]
+  1  ??? (Foundation + 2456540) [0x18f9eebdc]
+  1  ??? (Foundation + 2457376) [0x18f9eef20]
+  1  ??? (Foundation + 2463176) [0x18f9f05c8]
+  1  ??? (Foundation + 248356) [0x18f7d3a24]
+  1  ??? (libswiftCore.dylib + 1654416) [0x18f364e90]
+  1  ??? (libswiftCore.dylib + 122400) [0x18f1eee20]
+  1  ??? (libswiftCore.dylib + 3606668) [0x18f54188c]
+  1  ??? (libobjc.A.dylib + 7192) [0x18e0a1c18]
+
+
+Powerstats for:   duetexpertd [424]
+UUID:             427539BC-5A1A-3B29-AD74-C015B6009527
+Path:             /usr/libexec/duetexpertd
+Resource Coalition: 5 samples "com.apple.duetexpertd"(381)
+On Behalf Of:     5 samples UNKNOWN [31] (5 samples originated by UNKNOWN [31])
+Architecture:     arm64e
+Parent:           UNKNOWN [1]
+UID:              501
+Sudden Term:      Tracked (allows idle exit)
+Footprint:        11.33 MB
+Pageins:          1 pages
+Start time:       2025-08-20 15:43:49.938 +0200
+End time:         2025-08-20 15:44:58.838 +0200
+Num samples:      5 (83%)
+Num threads:      1
+Primary state:    5 samples Non-Frontmost App, Non-Suppressed, User mode, Effective Thread QoS Background, Requested Thread QoS Background, Override Thread QoS Unspecified, e-core
+User Activity:    5 samples Idle, 0 samples Active
+Power Source:     0 samples on Battery, 5 samples on AC
+  4  ??? (libsystem_pthread.dylib + 2732) [0x21afc0aac]
+    4  ??? (libsystem_pthread.dylib + 2572) [0x21afc0a0c]
+      4  ??? (libdispatch.dylib + 84576) [0x198acda60]
+        4  ??? (libdispatch.dylib + 86492) [0x198ace1dc]
+          4  ??? (libdispatch.dylib + 44460) [0x198ac3dac]
+            4  ??? (libdispatch.dylib + 41272) [0x198ac3138]
+              4  ??? (libdispatch.dylib + 128404) [0x198ad8594]
+                4  ??? (libdispatch.dylib + 112052) [0x198ad45b4]
+                  4  ??? (libxpc.dylib + 74240) [0x21b01d200]
+                    4  ??? (libxpc.dylib + 129804) [0x21b02ab0c]
+                      4  ??? (libxpc.dylib + 219316) [0x21b0408b4]
+                        4  ??? (libxpc.dylib + 219660) [0x21b040a0c]
+                          4  ??? (libxpc.dylib + 218236) [0x21b04047c]
+                            4  ??? (AppPredictionInternal + 3506012) [0x1deebdf5c]
+                              4  ??? (AppPredictionInternal + 3506656) [0x1deebe1e0]
+                                4  ??? (AppPredictionInternal + 1990944) [0x1ded4c120]
+                                  4  ??? (AppPredictionInternal + 3047884) [0x1dee4e1cc]
+                                    4  ??? (AppPredictionInternal + 3048272) [0x1dee4e350]
+                                      4  ??? (AppPredictionInternal + 3048648) [0x1dee4e4c8]
+                                        4  ??? (AppPredictionInternal + 3049552) [0x1dee4e850]
+                                          4  ??? (AppPredictionInternal + 3059412) [0x1dee50ed4]
+                                            4  ??? (AppPredictionInternal + 3060332) [0x1dee5126c]
+                                              4  ??? (AppPredictionInternal + 599072) [0x1debf8420]
+                                                4  ??? (AppPredictionInternal + 593840) [0x1debf6fb0]
+                                                  4  ??? (AppPredictionInternal + 596384) [0x1debf79a0]
+                                                    4  ??? (BiomePubSub + 13060) [0x1bb47f304]
+                                                      4  ??? (BiomePubSub + 11548) [0x1bb47ed1c]
+                                                        4  ??? (BiomePubSub + 8144) [0x1bb47dfd0]
+                                                          4  ??? (AppPredictionInternal + 596704) [0x1debf7ae0]
+                                                            4  ??? (AppPredictionInternal + 3324544) [0x1dee91a80]
+                                                              3  ??? (AppPredictionInternal + 3324084) [0x1dee918b4]
+                                                                3  ??? (AppPredictionInternal + 3325588) [0x1dee91e94]
+                                                                  2  ??? (Foundation + 386248) [0x18f7f54c8]
+                                                                    2  ??? (Foundation + 390768) [0x18f7f6670]
+                                                                      1  ??? (LinkMetadata + 169292) [0x1ab3d854c]
+                                                                        1  ??? (Foundation + 390768) [0x18f7f6670]
+                                                                          1  ??? (Foundation + 168872) [0x18f7c03a8]
+                                                                            1  ??? (Foundation + 389144) [0x18f7f6018]
+                                                                              1  ??? (Foundation + 390768) [0x18f7f6670]
+                                                                                1  ??? (LinkMetadata + 981492) [0x1ab49e9f4]
+                                                                                  1  ??? (Foundation + 390768) [0x18f7f6670]
+                                                                                    1  ??? (LinkMetadata + 195076) [0x1ab3dea04]
+                                                                                      1  ??? (Foundation + 390768) [0x18f7f6670]
+                                                                                        1  ??? (LinkMetadata + 194000) [0x1ab3de5d0]
+                                                                                          1  ??? (Foundation + 390768) [0x18f7f6670]
+                                                                                            1  ??? (Foundation + 168872) [0x18f7c03a8]
+                                                                                              1  ??? (Foundation + 389144) [0x18f7f6018]
+                                                                                                1  ??? (Foundation + 390768) [0x18f7f6670]
+                                                                                                  1  ??? (LinkMetadata + 981492) [0x1ab49e9f4]
+                                                                                                    1  ??? (Foundation + 390768) [0x18f7f6670]
+                                                                                                      1  ??? (LinkMetadata + 195156) [0x1ab3dea54]
+                                                                                                        1  ??? (Foundation + 390768) [0x18f7f6670]
+                                                                                                          1  ??? (LinkMetadata + 195328) [0x1ab3deb00]
+                                                                                                            1  ??? (Foundation + 390768) [0x18f7f6670]
+                                                                                                              1  ??? (LinkMetadata + 171184) [0x1ab3d8cb0]
+                                                                                                                1  ??? (Foundation + 390768) [0x18f7f6670]
+                                                                                                                  1  ??? (Foundation + 390768) [0x18f7f6670]
+                                                                                                                    1  ??? (Foundation + 2454328) [0x18f9ee338]
+                                                                                                                      1  ??? (Foundation + 2453308) [0x18f9edf3c]
+                                                                                                                        1  ??? (Foundation + 2454992) [0x18f9ee5d0]
+                                                                                                                          1  ??? (Foundation + 2454636) [0x18f9ee46c]
+                                                                                                                            1  ??? (Foundation + 1185868) [0x18f8b884c]
+                                                                                                                              1  ??? (Foundation + 2456596) [0x18f9eec14]
+                                                                                                                                1  ??? (Foundation + 2456540) [0x18f9eebdc]
+                                                                                                                                  1  ??? (Foundation + 2457376) [0x18f9eef20]
+                                                                                                                                    1  ??? (Foundation + 2463176) [0x18f9f05c8]
+                                                                                                                                      1  ??? (Foundation + 248356) [0x18f7d3a24]
+                                                                                                                                        1  ??? (libswiftCore.dylib + 1654416) [0x18f364e90]
+                                                                                                                                          1  ??? (libswiftCore.dylib + 122400) [0x18f1eee20]
+                                                                                                                                            1  ??? (libswiftCore.dylib + 3606668) [0x18f54188c]
+                                                                                                                                              1  ??? (libobjc.A.dylib + 7192) [0x18e0a1c18]
+                                                                                                                                                1  <on behalf of UNKNOWN [31] (originated by UNKNOWN [31])>
+                                                                      1  ??? (LinkMetadata + 169252) [0x1ab3d8524]
+                                                                        1  ??? (Foundation + 390768) [0x18f7f6670]
+                                                                          1  ??? (Foundation + 168872) [0x18f7c03a8]
+                                                                            1  ??? (Foundation + 389144) [0x18f7f6018]
+                                                                              1  ??? (Foundation + 391236) [0x18f7f6844]
+                                                                                1  ??? (Foundation + 175448) [0x18f7c1d58]
+                                                                                  1  ??? (CoreFoundation + 114112) [0x190b39dc0]
+                                                                                    1  ??? (CoreFoundation + 72844) [0x190b2fc8c]
+                                                                                      1  <on behalf of UNKNOWN [31] (originated by UNKNOWN [31])>
+                                                                  1  ??? (Foundation + 386256) [0x18f7f54d0]
+                                                                    1  ??? (Foundation + 387592) [0x18f7f5a08]
+                                                                      1  ??? (Foundation + 388480) [0x18f7f5d80]
+                                                                        1  ??? (CoreFoundation + 218680) [0x190b53638]
+                                                                          1  ??? (CoreFoundation + 218220) [0x190b5346c]
+                                                                            1  ??? (CoreFoundation + 218336) [0x190b534e0]
+                                                                              1  ??? (CoreFoundation + 218220) [0x190b5346c]
+                                                                                1  ??? (CoreFoundation + 217824) [0x190b532e0]
+                                                                                  1  ??? (CoreFoundation + 59240) [0x190b2c768]
+                                                                                    1  ??? (CoreFoundation + 106000) [0x190b37e10]
+                                                                                      1  <on behalf of UNKNOWN [31] (originated by UNKNOWN [31])>
+                                                              1  ??? (AppPredictionInternal + 3324064) [0x1dee918a0]
+                                                                1  ??? (LinkServices + 34748) [0x1b2b707bc]
+                                                                  1  ??? (Foundation + 732640) [0x18f849de0]
+                                                                    1  ??? (Foundation + 403368) [0x18f7f97a8]
+                                                                      1  ??? (Foundation + 402384) [0x18f7f93d0]
+                                                                        1  ??? (Foundation + 402520) [0x18f7f9458]
+                                                                          1  ??? (Foundation + 190124) [0x18f7c56ac]
+                                                                            1  ??? (Foundation + 177912) [0x18f7c26f8]
+                                                                              1  ??? (Foundation + 118708) [0x18f7b3fb4]
+                                                                                1  ??? (Foundation + 188288) [0x18f7c4f80]
+                                                                                  1  ??? (LinkMetadata + 10492) [0x1ab3b18fc]
+                                                                                    1  ??? (Foundation + 190124) [0x18f7c56ac]
+                                                                                      1  ??? (Foundation + 177912) [0x18f7c26f8]
+                                                                                        1  ??? (Foundation + 118708) [0x18f7b3fb4]
+                                                                                          1  ??? (Foundation + 188288) [0x18f7c4f80]
+                                                                                            1  ??? (Foundation + 176468) [0x18f7c2154]
+                                                                                              1  ??? (Foundation + 184536) [0x18f7c40d8]
+                                                                                                1  ??? (Foundation + 188288) [0x18f7c4f80]
+                                                                                                  1  ??? (LinkMetadata + 981644) [0x1ab49ea8c]
+                                                                                                    1  ??? (Foundation + 190124) [0x18f7c56ac]
+                                                                                                      1  ??? (Foundation + 177912) [0x18f7c26f8]
+                                                                                                        1  ??? (Foundation + 118708) [0x18f7b3fb4]
+                                                                                                          1  ??? (Foundation + 188288) [0x18f7c4f80]
+                                                                                                            1  ??? (LinkMetadata + 11752) [0x1ab3b1de8]
+                                                                                                              1  ??? (Foundation + 190124) [0x18f7c56ac]
+                                                                                                                1  ??? (Foundation + 177912) [0x18f7c26f8]
+                                                                                                                  1  ??? (Foundation + 118708) [0x18f7b3fb4]
+                                                                                                                    1  ??? (Foundation + 188288) [0x18f7c4f80]
+                                                                                                                      1  ??? (LinkMetadata + 203256) [0x1ab3e09f8]
+                                                                                                                        1  ??? (Foundation + 190124) [0x18f7c56ac]
+                                                                                                                          1  ??? (Foundation + 177912) [0x18f7c26f8]
+                                                                                                                            1  ??? (Foundation + 118708) [0x18f7b3fb4]
+                                                                                                                              1  ??? (Foundation + 188288) [0x18f7c4f80]
+                                                                                                                                1  ??? (Foundation + 176468) [0x18f7c2154]
+                                                                                                                                  1  ??? (Foundation + 184536) [0x18f7c40d8]
+                                                                                                                                    1  ??? (Foundation + 188288) [0x18f7c4f80]
+                                                                                                                                      1  ??? (LinkMetadata + 981644) [0x1ab49ea8c]
+                                                                                                                                        1  ??? (Foundation + 190124) [0x18f7c56ac]
+                                                                                                                                          1  ??? (Foundation + 177912) [0x18f7c26f8]
+                                                                                                                                            1  ??? (Foundation + 118708) [0x18f7b3fb4]
+                                                                                                                                              1  ??? (Foundation + 188288) [0x18f7c4f80]
+                                                                                                                                                1  ??? (LinkMetadata + 11800) [0x1ab3b1e18]
+                                                                                                                                                  1  ??? (Foundation + 190124) [0x18f7c56ac]
+                                                                                                                                                    1  ??? (Foundation + 177912) [0x18f7c26f8]
+                                                                                                                                                      1  ??? (Foundation + 118708) [0x18f7b3fb4]
+                                                                                                                                                        1  ??? (Foundation + 188288) [0x18f7c4f80]
+                                                                                                                                                          1  ??? (LinkMetadata + 12612) [0x1ab3b2144]
+                                                                                                                                                            1  ??? (Foundation + 190124) [0x18f7c56ac]
+                                                                                                                                                              1  ??? (Foundation + 177912) [0x18f7c26f8]
+                                                                                                                                                                1  ??? (Foundation + 118708) [0x18f7b3fb4]
+                                                                                                                                                                  1  ??? (Foundation + 188288) [0x18f7c4f80]
+                                                                                                                                                                    1  ??? (LinkMetadata + 7556) [0x1ab3b0d84]
+                                                                                                                                                                      1  ??? (Foundation + 190124) [0x18f7c56ac]
+                                                                                                                                                                        1  ??? (Foundation + 177912) [0x18f7c26f8]
+                                                                                                                                                                          1  ??? (Foundation + 118708) [0x18f7b3fb4]
+                                                                                                                                                                            1  ??? (Foundation + 188288) [0x18f7c4f80]
+                                                                                                                                                                              1  ??? (Foundation + 1348232) [0x18f8e0288]
+                                                                                                                                                                                1  ??? (Foundation + 190124) [0x18f7c56ac]
+                                                                                                                                                                                  1  ??? (Foundation + 177912) [0x18f7c26f8]
+                                                                                                                                                                                    1  ??? (Foundation + 118708) [0x18f7b3fb4]
+                                                                                                                                                                                      1  ??? (Foundation + 188288) [0x18f7c4f80]
+                                                                                                                                                                                        1  ??? (Foundation + 1348992) [0x18f8e0580]
+                                                                                                                                                                                          1  ??? (Foundation + 1348680) [0x18f8e0448]
+                                                                                                                                                                                            1  ??? (Foundation + 1349508) [0x18f8e0784]
+                                                                                                                                                                                              1  ??? (Foundation + 1349856) [0x18f8e08e0]
+                                                                                                                                                                                                1  ??? (Foundation + 1350044) [0x18f8e099c]
+                                                                                                                                                                                                  1  ??? (Foundation + 1350812) [0x18f8e0c9c]
+                                                                                                                                                                                                    1  ??? (Foundation + 1350352) [0x18f8e0ad0]
+                                                                                                                                                                                                      1  ??? (Foundation + 1352064) [0x18f8e1180]
+                                                                                                                                                                                                        1  ??? (Foundation + 1351872) [0x18f8e10c0]
+                                                                                                                                                                                                          1  ??? (Foundation + 1352184) [0x18f8e11f8]
+                                                                                                                                                                                                            1  ??? (Foundation + 825508) [0x18f8608a4]
+                                                                                                                                                                                                              1  ??? (Foundation + 825112) [0x18f860718]
+                                                                                                                                                                                                                1  ??? (Foundation + 1023828) [0x18f890f54]
+                                                                                                                                                                                                                  1  ??? (libswiftCore.dylib + 3455924) [0x18f51cbb4]
+                                                                                                                                                                                                                    1  ??? (Foundation + 1354964) [0x18f8e1cd4]
+                                                                                                                                                                                                                      1  ??? (Foundation + 1352568) [0x18f8e1378]
+                                                                                                                                                                                                                        1  ??? (libswiftCore.dylib + 306200) [0x18f21bc18]
+                                                                                                                                                                                                                          1  ??? (libswiftCore.dylib + 364732) [0x18f22a0bc]
+                                                                                                                                                                                                                            1  ??? (Foundation + 1220416) [0x18f8c0f40]
+                                                                                                                                                                                                                              1  ??? (Foundation + 1039068) [0x18f894adc]
+                                                                                                                                                                                                                                1  ??? (Foundation + 1220788) [0x18f8c10b4]
+                                                                                                                                                                                                                                  1  <on behalf of UNKNOWN [31] (originated by UNKNOWN [31])>
+  1  ??? (libdispatch.dylib + 41272) [0x198ac3138]
+    1  ??? (libdispatch.dylib + 128404) [0x198ad8594]
+      1  ??? (libdispatch.dylib + 112052) [0x198ad45b4]
+        1  ??? (libxpc.dylib + 74240) [0x21b01d200]
+          1  ??? (libxpc.dylib + 129804) [0x21b02ab0c]
+            1  ??? (libxpc.dylib + 219316) [0x21b0408b4]
+              1  ??? (libxpc.dylib + 219660) [0x21b040a0c]
+                1  ??? (libxpc.dylib + 218236) [0x21b04047c]
+                  1  ??? (AppPredictionInternal + 3506012) [0x1deebdf5c]
+                    1  ??? (AppPredictionInternal + 3506656) [0x1deebe1e0]
+                      1  ??? (AppPredictionInternal + 1990944) [0x1ded4c120]
+                        1  ??? (AppPredictionInternal + 3047884) [0x1dee4e1cc]
+                          1  ??? (AppPredictionInternal + 3048272) [0x1dee4e350]
+                            1  ??? (AppPredictionInternal + 3048648) [0x1dee4e4c8]
+                              1  ??? (AppPredictionInternal + 3049552) [0x1dee4e850]
+                                1  ??? (AppPredictionInternal + 3059412) [0x1dee50ed4]
+                                  1  ??? (AppPredictionInternal + 3060332) [0x1dee5126c]
+                                    1  ??? (AppPredictionInternal + 599072) [0x1debf8420]
+                                      1  ??? (AppPredictionInternal + 593840) [0x1debf6fb0]
+                                        1  ??? (AppPredictionInternal + 596384) [0x1debf79a0]
+                                          1  ??? (BiomePubSub + 13060) [0x1bb47f304]
+                                            1  ??? (BiomePubSub + 11548) [0x1bb47ed1c]
+                                              1  ??? (BiomePubSub + 8144) [0x1bb47dfd0]
+                                                1  ??? (AppPredictionInternal + 596704) [0x1debf7ae0]
+                                                  1  ??? (AppPredictionInternal + 3324544) [0x1dee91a80]
+                                                    1  ??? (AppPredictionInternal + 3324064) [0x1dee918a0]
+                                                      1  ??? (LinkServices + 34748) [0x1b2b707bc]
+                                                        1  ??? (Foundation + 732640) [0x18f849de0]
+                                                          1  ??? (Foundation + 403368) [0x18f7f97a8]
+                                                            1  ??? (Foundation + 402384) [0x18f7f93d0]
+                                                              1  ??? (Foundation + 402520) [0x18f7f9458]
+                                                                1  ??? (Foundation + 190124) [0x18f7c56ac]
+                                                                  1  ??? (Foundation + 177912) [0x18f7c26f8]
+                                                                    1  ??? (Foundation + 118708) [0x18f7b3fb4]
+                                                                      1  ??? (Foundation + 188288) [0x18f7c4f80]
+                                                                        1  ??? (LinkMetadata + 10492) [0x1ab3b18fc]
+                                                                          1  ??? (Foundation + 190124) [0x18f7c56ac]
+                                                                            1  ??? (Foundation + 177912) [0x18f7c26f8]
+                                                                              1  ??? (Foundation + 118708) [0x18f7b3fb4]
+                                                                                1  ??? (Foundation + 188288) [0x18f7c4f80]
+                                                                                  1  ??? (Foundation + 176468) [0x18f7c2154]
+                                                                                    1  ??? (Foundation + 184536) [0x18f7c40d8]
+                                                                                      1  ??? (Foundation + 188288) [0x18f7c4f80]
+                                                                                        1  ??? (LinkMetadata + 981644) [0x1ab49ea8c]
+                                                                                          1  ??? (Foundation + 190124) [0x18f7c56ac]
+                                                                                            1  ??? (Foundation + 177912) [0x18f7c26f8]
+                                                                                              1  ??? (Foundation + 118708) [0x18f7b3fb4]
+                                                                                                1  ??? (Foundation + 188288) [0x18f7c4f80]
+                                                                                                  1  ??? (LinkMetadata + 11752) [0x1ab3b1de8]
+                                                                                                    1  ??? (Foundation + 190124) [0x18f7c56ac]
+                                                                                                      1  ??? (Foundation + 177912) [0x18f7c26f8]
+                                                                                                        1  ??? (Foundation + 118708) [0x18f7b3fb4]
+                                                                                                          1  ??? (Foundation + 188288) [0x18f7c4f80]
+                                                                                                            1  ??? (LinkMetadata + 203256) [0x1ab3e09f8]
+                                                                                                              1  ??? (Foundation + 190124) [0x18f7c56ac]
+                                                                                                                1  ??? (Foundation + 177912) [0x18f7c26f8]
+                                                                                                                  1  ??? (Foundation + 118708) [0x18f7b3fb4]
+                                                                                                                    1  ??? (Foundation + 188288) [0x18f7c4f80]
+                                                                                                                      1  ??? (Foundation + 176468) [0x18f7c2154]
+                                                                                                                        1  ??? (Foundation + 184536) [0x18f7c40d8]
+                                                                                                                          1  ??? (Foundation + 188288) [0x18f7c4f80]
+                                                                                                                            1  ??? (LinkMetadata + 981644) [0x1ab49ea8c]
+                                                                                                                              1  ??? (Foundation + 190124) [0x18f7c56ac]
+                                                                                                                                1  ??? (Foundation + 177912) [0x18f7c26f8]
+                                                                                                                                  1  ??? (Foundation + 118708) [0x18f7b3fb4]
+                                                                                                                                    1  ??? (Foundation + 188288) [0x18f7c4f80]
+                                                                                                                                      1  ??? (LinkMetadata + 11800) [0x1ab3b1e18]
+                                                                                                                                        1  ??? (Foundation + 190124) [0x18f7c56ac]
+                                                                                                                                          1  ??? (Foundation + 177912) [0x18f7c26f8]
+                                                                                                                                            1  ??? (Foundation + 118708) [0x18f7b3fb4]
+                                                                                                                                              1  ??? (Foundation + 188288) [0x18f7c4f80]
+                                                                                                                                                1  ??? (LinkMetadata + 12612) [0x1ab3b2144]
+                                                                                                                                                  1  ??? (Foundation + 190124) [0x18f7c56ac]
+                                                                                                                                                    1  ??? (Foundation + 177912) [0x18f7c26f8]
+                                                                                                                                                      1  ??? (Foundation + 118708) [0x18f7b3fb4]
+                                                                                                                                                        1  ??? (Foundation + 188288) [0x18f7c4f80]
+                                                                                                                                                          1  ??? (LinkMetadata + 7556) [0x1ab3b0d84]
+                                                                                                                                                            1  ??? (Foundation + 190124) [0x18f7c56ac]
+                                                                                                                                                              1  ??? (Foundation + 177912) [0x18f7c26f8]
+                                                                                                                                                                1  ??? (Foundation + 118708) [0x18f7b3fb4]
+                                                                                                                                                                  1  ??? (Foundation + 188288) [0x18f7c4f80]
+                                                                                                                                                                    1  ??? (Foundation + 1348232) [0x18f8e0288]
+                                                                                                                                                                      1  ??? (Foundation + 190124) [0x18f7c56ac]
+                                                                                                                                                                        1  ??? (Foundation + 177912) [0x18f7c26f8]
+                                                                                                                                                                          1  ??? (Foundation + 118708) [0x18f7b3fb4]
+                                                                                                                                                                            1  ??? (Foundation + 188288) [0x18f7c4f80]
+                                                                                                                                                                              1  ??? (Foundation + 1348992) [0x18f8e0580]
+                                                                                                                                                                                1  ??? (Foundation + 1348680) [0x18f8e0448]
+                                                                                                                                                                                  1  ??? (Foundation + 1349508) [0x18f8e0784]
+                                                                                                                                                                                    1  ??? (Foundation + 1349856) [0x18f8e08e0]
+                                                                                                                                                                                      1  ??? (Foundation + 1350044) [0x18f8e099c]
+                                                                                                                                                                                        1  ??? (Foundation + 1350812) [0x18f8e0c9c]
+                                                                                                                                                                                          1  ??? (Foundation + 1350352) [0x18f8e0ad0]
+                                                                                                                                                                                            1  ??? (Foundation + 1352064) [0x18f8e1180]
+                                                                                                                                                                                              1  ??? (Foundation + 1351872) [0x18f8e10c0]
+                                                                                                                                                                                                1  ??? (Foundation + 1352184) [0x18f8e11f8]
+                                                                                                                                                                                                  1  ??? (Foundation + 825508) [0x18f8608a4]
+                                                                                                                                                                                                    1  ??? (Foundation + 825112) [0x18f860718]
+                                                                                                                                                                                                      1  ??? (Foundation + 1023828) [0x18f890f54]
+                                                                                                                                                                                                        1  ??? (libswiftCore.dylib + 3455924) [0x18f51cbb4]
+                                                                                                                                                                                                          1  ??? (Foundation + 1354964) [0x18f8e1cd4]
+                                                                                                                                                                                                            1  ??? (Foundation + 1352692) [0x18f8e13f4]
+                                                                                                                                                                                                              1  ??? (libswiftCore.dylib + 307344) [0x18f21c090]
+                                                                                                                                                                                                                1  ??? (libswiftCore.dylib + 374740) [0x18f22c7d4]
+                                                                                                                                                                                                                  1  ??? (Foundation + 1030784) [0x18f892a80]
+                                                                                                                                                                                                                    1  ??? (Foundation + 1024568) [0x18f891238]
+                                                                                                                                                                                                                      1  ??? (Foundation + 1030660) [0x18f892a04]
+                                                                                                                                                                                                                        1  ??? (Foundation + 1025840) [0x18f891730]
+                                                                                                                                                                                                                          1  ??? (libswiftCore.dylib + 3455924) [0x18f51cbb4]
+                                                                                                                                                                                                                            1  ??? (Foundation + 1360596) [0x18f8e32d4]
+                                                                                                                                                                                                                              1  ??? (Foundation + 1356524) [0x18f8e22ec]
+                                                                                                                                                                                                                                1  ??? (libswiftCore.dylib + 306200) [0x18f21bc18]
+                                                                                                                                                                                                                                  1  ??? (libswiftCore.dylib + 364732) [0x18f22a0bc]
+                                                                                                                                                                                                                                    1  ??? (Foundation + 1220416) [0x18f8c0f40]
+                                                                                                                                                                                                                                      1  ??? (Foundation + 1039068) [0x18f894adc]
+                                                                                                                                                                                                                                        1  ??? (Foundation + 1222004) [0x18f8c1574]
+                                                                                                                                                                                                                                          1  ??? (Foundation + 1039756) [0x18f894d8c]
+                                                                                                                                                                                                                                            1  ??? (Foundation + 1041876) [0x18f8955d4]
+                                                                                                                                                                                                                                              1  ??? (Foundation + 1040764) [0x18f89517c]
+                                                                                                                                                                                                                                                1  ??? (Foundation + 1021188) [0x18f890504]
+                                                                                                                                                                                                                                                  1  ??? (Foundation + 1028948) [0x18f892354]
+                                                                                                                                                                                                                                                    1  ??? (Foundation + 1021260) [0x18f89054c]
+                                                                                                                                                                                                                                                      1  ??? (Foundation + 1029028) [0x18f8923a4]
+                                                                                                                                                                                                                                                        1  ??? (Foundation + 1021528) [0x18f890658]
+                                                                                                                                                                                                                                                          1  ??? (Foundation + 1020880) [0x18f8903d0]
+                                                                                                                                                                                                                                                            1  ??? (Foundation + 59736) [0x18f7a5958]
+                                                                                                                                                                                                                                                              1  ??? (libswiftCore.dylib + 3759736) [0x18f566e78]
+                                                                                                                                                                                                                                                                1  ??? (libsystem_malloc.dylib + 76756) [0x1a11cfbd4]
+                                                                                                                                                                                                                                                                  1  <on behalf of UNKNOWN [31] (originated by UNKNOWN [31])>
+
+  Binary Images:
+           0x100d88000 -                ???  duetexpertd             <427539BC-5A1A-3B29-AD74-C015B6009527>  /usr/libexec/duetexpertd
+           0x18e0a0000 -        0x18e0f1bb3  libobjc.A.dylib         <E8825548-D148-3EE2-8076-39EA9CB11129>  /usr/lib/libobjc.A.dylib
+           0x18f1d1000 -        0x18f73a29f  libswiftCore.dylib      <4A7BACE5-EE57-375A-B860-CD7F1CA9E6AF>  /usr/lib/swift/libswiftCore.dylib
+           0x18f797000 -        0x19040b05f  Foundation              <C031896B-2EF1-3D89-966A-0B52D54BCEEE>  /System/Library/Frameworks/Foundation.framework/Foundation
+           0x190b1e000 -        0x19109afff  CoreFoundation          <AE3C9338-0166-397A-9643-356B14F6EE58>  /System/Library/Frameworks/CoreFoundation.framework/CoreFoundation
+           0x198ab9000 -        0x198afeb3f  libdispatch.dylib       <B62778F7-5827-3A7B-A96D-A24F7BE95416>  /usr/lib/system/libdispatch.dylib
+           0x1a11bd000 -        0x1a11fcfef  libsystem_malloc.dylib  <23C37642-B23B-34A8-BD54-2AC0B5F36047>  /usr/lib/system/libsystem_malloc.dylib
+           0x1ab3af000 -        0x1ab4faaff  LinkMetadata            <E0F8BCF3-B8F0-37E4-87A7-E817EFED94B2>  /System/Library/PrivateFrameworks/LinkMetadata.framework/LinkMetadata
+           0x1b2b68000 -        0x1b2c9057f  LinkServices            <1591A616-9F9B-3B39-B1A7-9125CAD48AEB>  /System/Library/PrivateFrameworks/LinkServices.framework/LinkServices
+           0x1bb47c000 -        0x1bb4d441f  BiomePubSub             <93E22170-A411-3EBE-8373-4999858AE6AD>  /System/Library/PrivateFrameworks/BiomePubSub.framework/BiomePubSub
+           0x1deb66000 -        0x1df1b385f  AppPredictionInternal   <F96AF654-7DE3-3FDB-ABF8-97DCB43F2BC9>  /System/Library/PrivateFrameworks/AppPredictionInternal.framework/AppPredictionInternal
+           0x21afc0000 -        0x21afcc3f3  libsystem_pthread.dylib <1EE19220-0859-3CBC-BDEB-DF37CA2E8E4F>  /usr/lib/system/libsystem_pthread.dylib
+           0x21b00b000 -        0x21b052dbf  libxpc.dylib            <6E4F2F21-192A-30E8-A3AD-9915ADD1EBD2>  /usr/lib/system/libxpc.dylib
+
+
+Powerstats for:   dasd
+UUID:             F0349296-61EE-38B7-A5A1-87967515BB99
+Path:             /usr/libexec/dasd
+Resource Coalition: 1 sample "com.apple.dasd"(103)
+Architecture:     arm64e
+Start time:       2025-08-20 15:44:04.131 +0200
+End time:         2025-08-20 15:44:04.131 +0200
+Num samples:      1 (17%)
+Primary state:    1 samples Non-Frontmost App, Non-Suppressed, User mode, Effective Thread QoS Utility, Requested Thread QoS Utility, Override Thread QoS Unspecified, e-core
+User Activity:    1 samples Idle, 0 samples Active
+Power Source:     0 samples on Battery, 1 samples on AC
+  1  ??? (libsystem_pthread.dylib + 2732) [0x21afc0aac]
+    1  ??? (libsystem_pthread.dylib + 2572) [0x21afc0a0c]
+      1  ??? (libdispatch.dylib + 84576) [0x198acda60]
+        1  ??? (libdispatch.dylib + 86492) [0x198ace1dc]
+          1  ??? (libdispatch.dylib + 44512) [0x198ac3de0]
+            1  ??? (libdispatch.dylib + 41272) [0x198ac3138]
+              1  ??? (libdispatch.dylib + 98336) [0x198ad1020]
+                1  ??? (libdispatch.dylib + 103240) [0x198ad2348]
+                  1  ??? (libdispatch.dylib + 25952) [0x198abf560]
+                    1  ??? (libdispatch.dylib + 112004) [0x198ad4584]
+                      1  ??? (dasd + 43244) [0x10238e8ec]
+                        1  ??? (dasd + 872140) [0x102458ecc]
+                          1  ??? (dasd + 879304) [0x10245aac8]
+                            1  ??? (libdispatch.dylib + 71464) [0x198aca728]
+                              1  ??? (libdispatch.dylib + 112004) [0x198ad4584]
+                                1  ??? (dasd + 879560) [0x10245abc8]
+                                  1  ??? (dasd + 878928) [0x10245a950]
+                                    1  ??? (dasd + 874260) [0x102459714]
+                                      1  ??? (dasd + 89768) [0x102399ea8]
+                                        1  ??? (dasd + 90576) [0x10239a1d0]
+                                          1  ??? (dasd + 500756) [0x1023fe414]
+                                            1  ??? (dasd + 84316) [0x10239895c]
+                                              1  ??? (libobjc.A.dylib + 31760) [0x18e0a7c10]
+
+  Binary Images:
+           0x102384000 -                ???  dasd                    <F0349296-61EE-38B7-A5A1-87967515BB99>  /usr/libexec/dasd
+           0x18e0a0000 -        0x18e0f1bb3  libobjc.A.dylib         <E8825548-D148-3EE2-8076-39EA9CB11129>  /usr/lib/libobjc.A.dylib
+           0x198ab9000 -        0x198afeb3f  libdispatch.dylib       <B62778F7-5827-3A7B-A96D-A24F7BE95416>  /usr/lib/system/libdispatch.dylib
+           0x21afc0000 -        0x21afcc3f3  libsystem_pthread.dylib <1EE19220-0859-3CBC-BDEB-DF37CA2E8E4F>  /usr/lib/system/libsystem_pthread.dylib

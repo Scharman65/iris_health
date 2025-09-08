@@ -1,0 +1,264 @@
+{"duration_ms":"140967","share_with_app_devs":0,"roots_installed":0,"bug_type":"202","os_version":"iPhone OS 18.6.2 (22G100)","slice_uuid":"427539BC-5A1A-3B29-AD74-C015B6009527","is_first_party":0,"incident_id":"31DA61E5-66DA-4283-A761-D807C96880B6","timestamp":"2025-08-23 13:10:31.00 +0200","app_name":"duetexpertd","name":"duetexpertd"}
+Date/Time:        2025-08-23 13:08:07.560 +0200
+End time:         2025-08-23 13:10:28.526 +0200
+OS Version:       iPhone OS 18.6.2 (Build 22G100)
+Architecture:     arm64e
+Report Version:   60
+Incident Identifier: 31DA61E5-66DA-4283-A761-D807C96880B6
+
+Data Source:      Microstackshots
+Shared Cache:     E62E079C-8C25-35B0-96F8-05DDBFEE7E0E slid base address 0x1998dc000, slide 0x198dc000
+
+Command:          duetexpertd
+Path:             /usr/libexec/duetexpertd
+Resource Coalition: "com.apple.duetexpertd"(325)
+On Behalf Of:     4 samples UNKNOWN [33] (4 samples originated by UNKNOWN [33])
+Architecture:     arm64e
+Parent:           UNKNOWN [1]
+PID:              199
+
+Event:            cpu usage
+Action taken:     none
+CPU:              90 seconds cpu time over 141 seconds (64% cpu average), exceeding limit of 50% cpu over 180 seconds
+CPU limit:        90s
+Limit duration:   180s
+CPU used:         90s
+CPU duration:     141s
+Duration:         140.97s
+Duration Sampled: 54.75s (event starts 58.77s before samples, event ends 27.45s after samples)
+Steps:            6
+
+Hardware model:   iPhone14,2
+Active cpus:      6
+Memory size:      5.54 GB
+HW page size:     16384
+VM page size:     16384
+Shared cache residency: 32.35% (1585.44 MB / 4900.81 MB)
+
+Time Since Boot:  2057s
+Time Awake Since Boot: 1902s
+Time Since Wake:  1624s
+
+Total CPU Time:   56.012s
+Advisory levels:  Battery -> 3, User -> 3, ThermalPressure -> 0, Combined -> 3
+Free disk space:  98.36 GB/119.09 GB, low space threshold 150 MB
+Vnodes Available: 67.54% (16209/24000, 12000 allocated, 12000 soft limit)
+Models:           none
+
+Preferred User Language: ru-ME
+Country Code:     ME
+Keyboards:        ru_RU Russian, en_GB QWERTY
+OS Cryptex File Extents: 1
+
+Heaviest stack for the target process:
+  4  ??? (libsystem_pthread.dylib + 2732) [0x226904aac]
+  4  ??? (libsystem_pthread.dylib + 2572) [0x226904a0c]
+  4  ??? (libdispatch.dylib + 84576) [0x1a4411a60]
+  4  ??? (libdispatch.dylib + 86492) [0x1a44121dc]
+  4  ??? (libdispatch.dylib + 44460) [0x1a4407dac]
+  4  ??? (libdispatch.dylib + 41272) [0x1a4407138]
+  4  ??? (libdispatch.dylib + 128404) [0x1a441c594]
+  4  ??? (libdispatch.dylib + 112052) [0x1a44185b4]
+  4  ??? (libxpc.dylib + 74240) [0x226961200]
+  4  ??? (libxpc.dylib + 129804) [0x22696eb0c]
+  4  ??? (libxpc.dylib + 219316) [0x2269848b4]
+  4  ??? (libxpc.dylib + 219660) [0x226984a0c]
+  4  ??? (libxpc.dylib + 218236) [0x22698447c]
+  4  ??? (AppPredictionInternal + 3506012) [0x1ea801f5c]
+  4  ??? (AppPredictionInternal + 3506656) [0x1ea8021e0]
+  4  ??? (AppPredictionInternal + 1990944) [0x1ea690120]
+  4  ??? (AppPredictionInternal + 3047884) [0x1ea7921cc]
+  4  ??? (AppPredictionInternal + 3048272) [0x1ea792350]
+  4  ??? (AppPredictionInternal + 3048648) [0x1ea7924c8]
+  4  ??? (AppPredictionInternal + 3049552) [0x1ea792850]
+  4  ??? (AppPredictionInternal + 3059412) [0x1ea794ed4]
+  4  ??? (AppPredictionInternal + 3060332) [0x1ea79526c]
+  4  ??? (AppPredictionInternal + 599072) [0x1ea53c420]
+  4  ??? (AppPredictionInternal + 593840) [0x1ea53afb0]
+  4  ??? (AppPredictionInternal + 596384) [0x1ea53b9a0]
+  4  ??? (BiomePubSub + 13060) [0x1c6dc3304]
+  4  ??? (BiomePubSub + 11548) [0x1c6dc2d1c]
+  4  ??? (BiomePubSub + 8144) [0x1c6dc1fd0]
+  4  ??? (AppPredictionInternal + 596704) [0x1ea53bae0]
+  4  ??? (AppPredictionInternal + 3324544) [0x1ea7d5a80]
+  2  ??? (AppPredictionInternal + 3324084) [0x1ea7d58b4]
+  2  ??? (AppPredictionInternal + 3325588) [0x1ea7d5e94]
+  2  ??? (Foundation + 386256) [0x19b1394d0]
+  2  ??? (Foundation + 387592) [0x19b139a08]
+  2  ??? (Foundation + 388480) [0x19b139d80]
+  1  ??? (CoreFoundation + 219052) [0x19c4977ac]
+  1  ??? (CoreFoundation + 34308) [0x19c46a604]
+  1  ??? (CoreFoundation + 35396) [0x19c46aa44]
+
+
+Powerstats for:   duetexpertd [199]
+UUID:             427539BC-5A1A-3B29-AD74-C015B6009527
+Path:             /usr/libexec/duetexpertd
+Resource Coalition: 4 samples "com.apple.duetexpertd"(325)
+On Behalf Of:     4 samples UNKNOWN [33] (4 samples originated by UNKNOWN [33])
+Architecture:     arm64e
+Parent:           UNKNOWN [1]
+UID:              501
+Sudden Term:      Tracked (allows idle exit)
+Footprint:        12.42 MB -> 14.16 MB (+1776 KB)
+Start time:       2025-08-23 13:09:06.328 +0200
+End time:         2025-08-23 13:10:01.074 +0200
+Num samples:      4 (67%)
+Num threads:      1
+Primary state:    4 samples Non-Frontmost App, Non-Suppressed, User mode, Effective Thread QoS Background, Requested Thread QoS Background, Override Thread QoS Unspecified, e-core
+User Activity:    4 samples Idle, 0 samples Active
+Power Source:     0 samples on Battery, 4 samples on AC
+  4  ??? (libsystem_pthread.dylib + 2732) [0x226904aac]
+    4  ??? (libsystem_pthread.dylib + 2572) [0x226904a0c]
+      4  ??? (libdispatch.dylib + 84576) [0x1a4411a60]
+        4  ??? (libdispatch.dylib + 86492) [0x1a44121dc]
+          4  ??? (libdispatch.dylib + 44460) [0x1a4407dac]
+            4  ??? (libdispatch.dylib + 41272) [0x1a4407138]
+              4  ??? (libdispatch.dylib + 128404) [0x1a441c594]
+                4  ??? (libdispatch.dylib + 112052) [0x1a44185b4]
+                  4  ??? (libxpc.dylib + 74240) [0x226961200]
+                    4  ??? (libxpc.dylib + 129804) [0x22696eb0c]
+                      4  ??? (libxpc.dylib + 219316) [0x2269848b4]
+                        4  ??? (libxpc.dylib + 219660) [0x226984a0c]
+                          4  ??? (libxpc.dylib + 218236) [0x22698447c]
+                            4  ??? (AppPredictionInternal + 3506012) [0x1ea801f5c]
+                              4  ??? (AppPredictionInternal + 3506656) [0x1ea8021e0]
+                                4  ??? (AppPredictionInternal + 1990944) [0x1ea690120]
+                                  4  ??? (AppPredictionInternal + 3047884) [0x1ea7921cc]
+                                    4  ??? (AppPredictionInternal + 3048272) [0x1ea792350]
+                                      4  ??? (AppPredictionInternal + 3048648) [0x1ea7924c8]
+                                        4  ??? (AppPredictionInternal + 3049552) [0x1ea792850]
+                                          4  ??? (AppPredictionInternal + 3059412) [0x1ea794ed4]
+                                            4  ??? (AppPredictionInternal + 3060332) [0x1ea79526c]
+                                              4  ??? (AppPredictionInternal + 599072) [0x1ea53c420]
+                                                4  ??? (AppPredictionInternal + 593840) [0x1ea53afb0]
+                                                  4  ??? (AppPredictionInternal + 596384) [0x1ea53b9a0]
+                                                    4  ??? (BiomePubSub + 13060) [0x1c6dc3304]
+                                                      4  ??? (BiomePubSub + 11548) [0x1c6dc2d1c]
+                                                        4  ??? (BiomePubSub + 8144) [0x1c6dc1fd0]
+                                                          4  ??? (AppPredictionInternal + 596704) [0x1ea53bae0]
+                                                            4  ??? (AppPredictionInternal + 3324544) [0x1ea7d5a80]
+                                                              2  ??? (AppPredictionInternal + 3324084) [0x1ea7d58b4]
+                                                                2  ??? (AppPredictionInternal + 3325588) [0x1ea7d5e94]
+                                                                  2  ??? (Foundation + 386256) [0x19b1394d0]
+                                                                    2  ??? (Foundation + 387592) [0x19b139a08]
+                                                                      2  ??? (Foundation + 388480) [0x19b139d80]
+                                                                        1  ??? (CoreFoundation + 219052) [0x19c4977ac]
+                                                                          1  ??? (CoreFoundation + 34308) [0x19c46a604]
+                                                                            1  ??? (CoreFoundation + 35396) [0x19c46aa44]
+                                                                              1  <on behalf of UNKNOWN [33] (originated by UNKNOWN [33])>
+                                                                        1  ??? (CoreFoundation + 219020) [0x19c49778c]
+                                                                          1  ??? (CoreFoundation + 215828) [0x19c496b14]
+                                                                            1  ??? (CoreFoundation + 12720) [0x19c4651b0]
+                                                                              1  <on behalf of UNKNOWN [33] (originated by UNKNOWN [33])>
+                                                              1  ??? (AppPredictionInternal + 3324212) [0x1ea7d5934]
+                                                                1  ??? (Foundation + 81248) [0x19b0eed60]
+                                                                  1  ??? (CoreFoundation + 12456) [0x19c4650a8]
+                                                                    1  ??? (CoreFoundation + 10852) [0x19c464a64]
+                                                                      1  ??? (CoreFoundation + 21132) [0x19c46728c]
+                                                                        1  ??? (CoreFoundation + 29820) [0x19c46947c]
+                                                                          1  <on behalf of UNKNOWN [33] (originated by UNKNOWN [33])>
+                                                              1  ??? (AppPredictionInternal + 3324064) [0x1ea7d58a0]
+                                                                1  ??? (LinkServices + 34748) [0x1be4b47bc]
+                                                                  1  ??? (Foundation + 732640) [0x19b18dde0]
+                                                                    1  ??? (Foundation + 403368) [0x19b13d7a8]
+                                                                      1  ??? (Foundation + 402384) [0x19b13d3d0]
+                                                                        1  ??? (Foundation + 402520) [0x19b13d458]
+                                                                          1  ??? (Foundation + 190124) [0x19b1096ac]
+                                                                            1  ??? (Foundation + 177912) [0x19b1066f8]
+                                                                              1  ??? (Foundation + 118708) [0x19b0f7fb4]
+                                                                                1  ??? (Foundation + 188288) [0x19b108f80]
+                                                                                  1  ??? (LinkMetadata + 10572) [0x1b6cf594c]
+                                                                                    1  ??? (Foundation + 190124) [0x19b1096ac]
+                                                                                      1  ??? (Foundation + 177912) [0x19b1066f8]
+                                                                                        1  ??? (Foundation + 118708) [0x19b0f7fb4]
+                                                                                          1  ??? (Foundation + 188288) [0x19b108f80]
+                                                                                            1  ??? (LinkMetadata + 29020) [0x1b6cfa15c]
+                                                                                              1  ??? (Foundation + 190124) [0x19b1096ac]
+                                                                                                1  ??? (Foundation + 177912) [0x19b1066f8]
+                                                                                                  1  ??? (Foundation + 118708) [0x19b0f7fb4]
+                                                                                                    1  ??? (Foundation + 188288) [0x19b108f80]
+                                                                                                      1  ??? (LinkMetadata + 32792) [0x1b6cfb018]
+                                                                                                        1  ??? (Foundation + 190124) [0x19b1096ac]
+                                                                                                          1  ??? (Foundation + 177912) [0x19b1066f8]
+                                                                                                            1  ??? (Foundation + 118708) [0x19b0f7fb4]
+                                                                                                              1  ??? (Foundation + 188288) [0x19b108f80]
+                                                                                                                1  ??? (Foundation + 176468) [0x19b106154]
+                                                                                                                  1  ??? (Foundation + 184536) [0x19b1080d8]
+                                                                                                                    1  ??? (Foundation + 188288) [0x19b108f80]
+                                                                                                                      1  ??? (LinkMetadata + 33068) [0x1b6cfb12c]
+                                                                                                                        1  ??? (Foundation + 190124) [0x19b1096ac]
+                                                                                                                          1  ??? (Foundation + 177912) [0x19b1066f8]
+                                                                                                                            1  ??? (Foundation + 118708) [0x19b0f7fb4]
+                                                                                                                              1  ??? (Foundation + 188288) [0x19b108f80]
+                                                                                                                                1  ??? (LinkMetadata + 11708) [0x1b6cf5dbc]
+                                                                                                                                  1  ??? (Foundation + 190124) [0x19b1096ac]
+                                                                                                                                    1  ??? (Foundation + 177912) [0x19b1066f8]
+                                                                                                                                      1  ??? (Foundation + 118708) [0x19b0f7fb4]
+                                                                                                                                        1  ??? (Foundation + 187224) [0x19b108b58]
+                                                                                                                                          1  ??? (Foundation + 2612548) [0x19b358d44]
+                                                                                                                                            1  ??? (CoreFoundation + 76188) [0x19c47499c]
+                                                                                                                                              1  ??? (CoreFoundation + 53988) [0x19c46f2e4]
+                                                                                                                                                1  ??? (CoreFoundation + 12720) [0x19c4651b0]
+                                                                                                                                                  1  <on behalf of UNKNOWN [33] (originated by UNKNOWN [33])>
+
+  Binary Images:
+           0x1026d0000 -                ???  duetexpertd             <427539BC-5A1A-3B29-AD74-C015B6009527>  /usr/libexec/duetexpertd
+           0x19b0db000 -        0x19bd4f05f  Foundation              <C031896B-2EF1-3D89-966A-0B52D54BCEEE>  /System/Library/Frameworks/Foundation.framework/Foundation
+           0x19c462000 -        0x19c9defff  CoreFoundation          <AE3C9338-0166-397A-9643-356B14F6EE58>  /System/Library/Frameworks/CoreFoundation.framework/CoreFoundation
+           0x1a43fd000 -        0x1a4442b3f  libdispatch.dylib       <B62778F7-5827-3A7B-A96D-A24F7BE95416>  /usr/lib/system/libdispatch.dylib
+           0x1b6cf3000 -        0x1b6e3eaff  LinkMetadata            <E0F8BCF3-B8F0-37E4-87A7-E817EFED94B2>  /System/Library/PrivateFrameworks/LinkMetadata.framework/LinkMetadata
+           0x1be4ac000 -        0x1be5d457f  LinkServices            <1591A616-9F9B-3B39-B1A7-9125CAD48AEB>  /System/Library/PrivateFrameworks/LinkServices.framework/LinkServices
+           0x1c6dc0000 -        0x1c6e1841f  BiomePubSub             <93E22170-A411-3EBE-8373-4999858AE6AD>  /System/Library/PrivateFrameworks/BiomePubSub.framework/BiomePubSub
+           0x1ea4aa000 -        0x1eaaf785f  AppPredictionInternal   <4A7C2ACA-A4A4-3ACC-AF22-D67A6BBA37E5>  /System/Library/PrivateFrameworks/AppPredictionInternal.framework/AppPredictionInternal
+           0x226904000 -        0x2269103f3  libsystem_pthread.dylib <1EE19220-0859-3CBC-BDEB-DF37CA2E8E4F>  /usr/lib/system/libsystem_pthread.dylib
+           0x22694f000 -        0x226996dbf  libxpc.dylib            <6E4F2F21-192A-30E8-A3AD-9915ADD1EBD2>  /usr/lib/system/libxpc.dylib
+
+
+Powerstats for:   kernel_task
+UUID:             FFB756E3-B8C5-3D8C-9C06-CF86AEB0BC62
+Version:          Darwin Kernel Version 24.6.0: Tue Jul 15 21:54:59 PDT 2025; root:xnu-11417.140.69~16/RELEASE_ARM64_T8110
+Resource Coalition: 2 samples 1
+Architecture:     arm64
+Start time:       2025-08-23 13:09:08.454 +0200
+End time:         2025-08-23 13:09:37.865 +0200
+Num samples:      2 (33%)
+Primary state:    2 samples Non-Frontmost App, Non-Suppressed, Kernel mode, Effective Thread QoS Unspecified, Requested Thread QoS Unspecified, Override Thread QoS Unspecified, e-core
+User Activity:    2 samples Idle, 0 samples Active
+Power Source:     0 samples on Battery, 2 samples on AC
+ *1  ??? (<FFB756E3-B8C5-3D8C-9C06-CF86AEB0BC62> + 7275016) [0xfffffff0085bc208]
+   *1  ??? (<FFB756E3-B8C5-3D8C-9C06-CF86AEB0BC62> + 7272544) [0xfffffff0085bb860]
+     *1  ??? (<FFB756E3-B8C5-3D8C-9C06-CF86AEB0BC62> + 7286744) [0xfffffff0085befd8]
+       *1  ??? (AppleUSBXDCI + 102256) [0xfffffff009f10cd0]
+         *1  ??? (AppleUSBXDCI + 104712) [0xfffffff009f11668]
+           *1  ??? (IOUSBDeviceFamily + 94128) [0xfffffff009ee2d10]
+             *1  ??? (<FFB756E3-B8C5-3D8C-9C06-CF86AEB0BC62> + 7291260) [0xfffffff0085c017c]
+               *1  ??? (AppleUSBDeviceNCM + 8260) [0xfffffff00973d204]
+                 *1  ??? (IONetworkingFamily + 70528) [0xfffffff009da1b50]
+                   *1  ??? (IONetworkingFamily + 70364) [0xfffffff009da1aac]
+                     *1  ??? (<FFB756E3-B8C5-3D8C-9C06-CF86AEB0BC62> + 2457084) [0xfffffff008123dfc]
+                       *1  ??? (<FFB756E3-B8C5-3D8C-9C06-CF86AEB0BC62> + 6281100) [0xfffffff0084c978c]
+                         *1  ??? (<FFB756E3-B8C5-3D8C-9C06-CF86AEB0BC62> + 6289936) [0xfffffff0084cba10]
+                           *1  ??? (<FFB756E3-B8C5-3D8C-9C06-CF86AEB0BC62> + 6261616) [0xfffffff0084c4b70]
+                             *1  ??? (<FFB756E3-B8C5-3D8C-9C06-CF86AEB0BC62> + 6265124) [0xfffffff0084c5924]
+                               *1  ??? (<FFB756E3-B8C5-3D8C-9C06-CF86AEB0BC62> + 6264888) [0xfffffff0084c5838]
+                                 *1  ??? (<FFB756E3-B8C5-3D8C-9C06-CF86AEB0BC62> + 6134352) [0xfffffff0084a5a50]
+                                   *1  ??? (<FFB756E3-B8C5-3D8C-9C06-CF86AEB0BC62> + 6130724) [0xfffffff0084a4c24]
+                                     *1  ??? (<FFB756E3-B8C5-3D8C-9C06-CF86AEB0BC62> + 6222552) [0xfffffff0084bb2d8]
+                                       *1  ??? (<FFB756E3-B8C5-3D8C-9C06-CF86AEB0BC62> + 6230096) [0xfffffff0084bd050]
+                                         *1  ??? (<FFB756E3-B8C5-3D8C-9C06-CF86AEB0BC62> + 4411756) [0xfffffff00830116c]
+ *1  ??? (<FFB756E3-B8C5-3D8C-9C06-CF86AEB0BC62> + 2509120) [0xfffffff008130940]
+   *1  ??? (<FFB756E3-B8C5-3D8C-9C06-CF86AEB0BC62> + 2506436) [0xfffffff00812fec4]
+     *1  ??? (<FFB756E3-B8C5-3D8C-9C06-CF86AEB0BC62> + 2508276) [0xfffffff0081305f4]
+       *1  ??? (<FFB756E3-B8C5-3D8C-9C06-CF86AEB0BC62> + 2792440) [0xfffffff008175bf8]
+         *1  ??? (<FFB756E3-B8C5-3D8C-9C06-CF86AEB0BC62> + 2788476) [0xfffffff008174c7c]
+           *1  ??? (<FFB756E3-B8C5-3D8C-9C06-CF86AEB0BC62> + 4427704) [0xfffffff008304fb8]
+             *1  ??? (<FFB756E3-B8C5-3D8C-9C06-CF86AEB0BC62> + 4428240) [0xfffffff0083051d0]
+               *1  ??? (<FFB756E3-B8C5-3D8C-9C06-CF86AEB0BC62> + 4057720) [0xfffffff0082aaa78]
+
+  Binary Images:
+   *0xfffffff007ecc000 - 0xfffffff0086b3fff  ??? (24.6.0)                               <FFB756E3-B8C5-3D8C-9C06-CF86AEB0BC62>__TEXT_EXEC
+   *0xfffffff00973b1c0 - 0xfffffff0097424bf  com.apple.driver.AppleUSBDeviceNCM (5.0.0) <68E03835-9487-32AE-A357-305BB36214B9>__TEXT_EXEC  /System/Library/Extensions/AppleUSBDeviceNCM.kext/AppleUSBDeviceNCM
+   *0xfffffff009d907d0 - 0xfffffff009dadcaf  com.apple.iokit.IONetworkingFamily (3.4)   <8F751D5B-BC94-30D4-BBD7-6AC2C5901BF4>__TEXT_EXEC  /System/Library/Extensions/IONetworkingFamily.kext/IONetworkingFamily
+   *0xfffffff009ecbd60 - 0xfffffff009ef5eaf  com.apple.iokit.IOUSBDeviceFamily (2.0.0)  <709A19F1-25FB-3951-93B4-4A1D4BA81A3A>__TEXT_EXEC  /System/Library/Extensions/IOUSBDeviceFamily.kext/IOUSBDeviceFamily
+   *0xfffffff009ef7d60 - 0xfffffff009f18ebb  com.apple.driver.AppleUSBXDCI (1.0)        <0884758B-8364-32A8-9489-A39EE934D2E7>__TEXT_EXEC  /System/Library/Extensions/IOUSBDeviceFamily.kext/PlugIns/AppleUSBXDCI.kext/AppleUSBXDCI

@@ -1,0 +1,55 @@
+=== flutter doctor -v ===
+[✓] Flutter (Channel stable, 3.32.8, on macOS 15.6.1 24G90 darwin-arm64, locale ru-ME) [121ms]
+    • Flutter version 3.32.8 on channel stable at /Users/rs/development/flutter
+    • Upstream repository https://github.com/flutter/flutter.git
+    • Framework revision edada7c56e (5 weeks ago), 2025-07-25 14:08:03 +0000
+    • Engine revision ef0cd00091
+    • Dart version 3.8.1
+    • DevTools version 2.45.1
+
+[✗] Android toolchain - develop for Android devices [107ms]
+    ✗ Unable to locate Android SDK.
+      Install Android Studio from: https://developer.android.com/studio/index.html
+      On first launch it will assist you in installing the Android SDK components.
+      (or visit https://flutter.dev/to/macos-android-setup for detailed instructions).
+      If the Android SDK has been installed to a custom location, please use
+      `flutter config --android-sdk` to update to that location.
+
+
+[✓] Xcode - develop for iOS and macOS (Xcode 16.3) [501ms]
+    • Xcode at /Applications/Xcode.app/Contents/Developer
+    • Build 16E140
+    • CocoaPods version 1.16.2
+
+[✓] Chrome - develop for the web [6ms]
+    • Chrome at /Applications/Google Chrome.app/Contents/MacOS/Google Chrome
+
+[✓] Android Studio (version 2024.3) [6ms]
+    • Android Studio at /Applications/Android Studio.app/Contents
+    • Flutter plugin can be installed from:
+      🔨 https://plugins.jetbrains.com/plugin/9212-flutter
+    • Dart plugin can be installed from:
+      🔨 https://plugins.jetbrains.com/plugin/6351-dart
+    • Java version OpenJDK Runtime Environment (build 21.0.6+-13355223-b631.42)
+
+[✓] Connected device (3 available) [5,8s]
+    • iPhone 13 (mobile) • 00008110-000958EE01C0401E • ios            • iOS 18.6.2 22G100
+    • macOS (desktop)    • macos                     • darwin-arm64   • macOS 15.6.1 24G90 darwin-arm64
+    • Chrome (web)       • chrome                    • web-javascript • Google Chrome 136.0.7103.49
+    ! Error: Browsing on the local area network for iPhone Ruslan. Ensure the device is unlocked and attached with a cable or associated with the same local area network as this Mac.
+      The device must be opted into Developer Mode to connect wirelessly. (code -27)
+
+[✓] Network resources [702ms]
+    • All expected network resources are available.
+
+! Doctor found issues in 1 category.
+
+=== dart --version ===
+Dart SDK version: 3.8.1 (stable) (Wed May 28 00:47:25 2025 -0700) on "macos_arm64"
+
+=== xcodebuild -version ===
+Xcode 16.3
+Build version 16E140
+
+=== pod --version ===
+1.16.2
