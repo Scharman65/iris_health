@@ -69,3 +69,8 @@ crashes/
 
 # iOS build dir
 ios/build/
+
+# Android build dirs
+android/build/
+android/.gradle/
+android/.cxx/
