@@ -66,3 +66,6 @@ crashes/
 .fvm/
 !.fvmrc
 !.fvm/fvm_config.json
+
+# iOS build dir
+ios/build/
