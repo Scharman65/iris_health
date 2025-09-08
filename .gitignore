@@ -1,45 +1,47 @@
-# Flutter/Dart/Pub
+# ===== Flutter/Dart/Pub =====
 .dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
 .packages
-.pub-cache/
 .pub/
+.pub-cache/
+**/doc/api/
+**/ios/Flutter/.last_build_id
+/build/
 
-# Build outputs
-build/
+# ===== iOS / CocoaPods =====
+ios/.symlinks/
 ios/Flutter/Flutter.framework
 ios/Flutter/Flutter.podspec
-ios/.symlinks/
 ios/Pods/
+ios/Podfile.lock
+ios/Runner.xcworkspace/
+ios/Runner.xcodeproj/project.xcworkspace/
+ios/Runner.xcodeproj/xcuserdata/
+
+# ===== Other platforms (ephemeral) =====
 macos/Pods/
 linux/flutter/ephemeral/
 windows/flutter/ephemeral/
 
-# Generated files
-Generated.xcconfig
-flutter_export_environment.sh
-
-# Xcode
+# ===== Xcode general =====
 DerivedData/
 *.xcuserstate
-*.xcworkspace
 *.xcuserdatad
+*.xcworkspace
 *.lock
 
-# VS Code
+# ===== IDE =====
 .vscode/
-
-# IntelliJ
 .idea/
+*.iml
 
-# Misc
+# ===== Misc =====
+.DS_Store
 *.log
-
-# Miscellaneous
 *.class
-*.log
 *.pyc
 *.swp
-.DS_Store
 .atom/
 .build/
 .buildlog/
@@ -47,108 +49,20 @@ DerivedData/
 .svn/
 .swiftpm/
 migrate_working_dir/
-
-# IntelliJ related
-*.iml
-*.ipr
-*.iws
-.idea/
-
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
-
-# Flutter/Dart/Pub related
-**/doc/api/
-**/ios/Flutter/.last_build_id
-.dart_tool/
-.flutter-plugins
-.flutter-plugins-dependencies
-.pub-cache/
-.pub/
-/build/
-
-# Symbolication related
 app.*.symbols
-
-# Obfuscation related
 app.*.map.json
-
-# Android Studio will place build artifacts here
 /android/app/debug
 /android/app/profile
 /android/app/release
-
-# large archives
 *.zip
 
-
-*.zip
-
-# --- доп.игнор для проекта ---
-# Билды и артефакты
+# ===== Project-specific =====
 Runner.ipa
 *.ipa
-
-# Крэш-логи и прочие дампы
 crashes/
 *.ips
 
-# Локальный FVM (оставляем только конфиги)
+# FVM (оставляем только конфиги)
 .fvm/
 !.fvmrc
 !.fvm/fvm_config.json
-
-# CocoaPods локальные файлы (если не хотите коммитить Pods)
-ios/Pods/
-ios/Podfile.lock
-ios/Runner.xcworkspace/
-
-# Xcode user data
-ios/Runner.xcodeproj/project.xcworkspace/
-ios/Runner.xcodeproj/xcuserdata/
-# --- доп.игнор для проекта ---
-# Билды и артефакты
-Runner.ipa
-*.ipa
-
-# Крэш-логи и прочие дампы
-crashes/
-*.ips
-
-# Локальный FVM (оставляем только конфиги)
-.fvm/
-!.fvmrc
-!.fvm/fvm_config.json
-
-# CocoaPods локальные файлы (если не хотите коммитить Pods)
-ios/Pods/
-ios/Podfile.lock
-ios/Runner.xcworkspace/
-
-# Xcode user data
-ios/Runner.xcodeproj/project.xcworkspace/
-ios/Runner.xcodeproj/xcuserdata/
-# --- доп.игнор для проекта ---
-# Билды и артефакты
-Runner.ipa
-*.ipa
-
-# Крэш-логи и прочие дампы
-crashes/
-*.ips
-
-# Локальный FVM (оставляем только конфиги)
-.fvm/
-!.fvmrc
-!.fvm/fvm_config.json
-
-# CocoaPods локальные файлы (если не хотите коммитить Pods)
-ios/Pods/
-ios/Podfile.lock
-ios/Runner.xcworkspace/
-
-# Xcode user data
-ios/Runner.xcodeproj/project.xcworkspace/
-ios/Runner.xcodeproj/xcuserdata/
