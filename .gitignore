@@ -86,3 +86,69 @@ app.*.map.json
 
 *.zip
 
+# --- доп.игнор для проекта ---
+# Билды и артефакты
+Runner.ipa
+*.ipa
+
+# Крэш-логи и прочие дампы
+crashes/
+*.ips
+
+# Локальный FVM (оставляем только конфиги)
+.fvm/
+!.fvmrc
+!.fvm/fvm_config.json
+
+# CocoaPods локальные файлы (если не хотите коммитить Pods)
+ios/Pods/
+ios/Podfile.lock
+ios/Runner.xcworkspace/
+
+# Xcode user data
+ios/Runner.xcodeproj/project.xcworkspace/
+ios/Runner.xcodeproj/xcuserdata/
+# --- доп.игнор для проекта ---
+# Билды и артефакты
+Runner.ipa
+*.ipa
+
+# Крэш-логи и прочие дампы
+crashes/
+*.ips
+
+# Локальный FVM (оставляем только конфиги)
+.fvm/
+!.fvmrc
+!.fvm/fvm_config.json
+
+# CocoaPods локальные файлы (если не хотите коммитить Pods)
+ios/Pods/
+ios/Podfile.lock
+ios/Runner.xcworkspace/
+
+# Xcode user data
+ios/Runner.xcodeproj/project.xcworkspace/
+ios/Runner.xcodeproj/xcuserdata/
+# --- доп.игнор для проекта ---
+# Билды и артефакты
+Runner.ipa
+*.ipa
+
+# Крэш-логи и прочие дампы
+crashes/
+*.ips
+
+# Локальный FVM (оставляем только конфиги)
+.fvm/
+!.fvmrc
+!.fvm/fvm_config.json
+
+# CocoaPods локальные файлы (если не хотите коммитить Pods)
+ios/Pods/
+ios/Podfile.lock
+ios/Runner.xcworkspace/
+
+# Xcode user data
+ios/Runner.xcodeproj/project.xcworkspace/
+ios/Runner.xcodeproj/xcuserdata/
