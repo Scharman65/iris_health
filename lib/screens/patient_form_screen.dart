@@ -1,8 +1,11 @@
+import '../services/exam_session.dart';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'dart:async';
 
 import 'camera_screen.dart';
+import '../services/session_meta.dart';
 
 class PatientFormScreen extends StatefulWidget {
   const PatientFormScreen({super.key});
@@ -39,18 +42,25 @@ class _PatientFormScreenState extends State<PatientFormScreen> {
     return '$ts-$suffix';
   }
 
-  void _startShoot() {
+  Future<void> _startShoot() async {
     if (!_formKey.currentState!.validate()) return;
 
     final age = int.parse(_ageCtrl.text.trim());
     final gender = _gender!;
-    final examId = _generateExamId();
+    final examId = ExamSession.start();
 
-    Navigator.push(
+    await SessionMeta.write(examId: examId, age: age, gender: gender);
+
+    FocusManager.instance.primaryFocus?.unfocus();
+    await Future.delayed(const Duration(milliseconds:50));
+Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => CameraScreen(
           examId: examId,
+              age: age,
+              gender: gender,
+
           // age: age,
           // gender: gender,
           // onlySide: null, // при пересъёмке можно передать EyeSide.left/right
