@@ -1,5 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:iris_health/screens/camera_screen.dart';
+import 'package:iris_health/models/eye_side.dart';
 
 class DiagnosisSummaryScreen extends StatelessWidget {
   const DiagnosisSummaryScreen({
@@ -28,10 +30,13 @@ class DiagnosisSummaryScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final shortId = examId.isNotEmpty
+        ? examId.substring(0, examId.length < 8 ? examId.length : 8)
+        : '';
+
     return Scaffold(
       appBar: AppBar(
-        title:
-            Text('Итоги • ${examId.isNotEmpty ? examId.substring(0, examId.length.clamp(0, 8)) : ""}'),
+        title: Text('Итоги • $shortId'),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -49,10 +54,11 @@ class DiagnosisSummaryScreen extends StatelessWidget {
               const SizedBox(height: 12),
             ],
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(child: _photoCard(leftPath, 'Левый глаз')),
+                Expanded(child: _photoCard(context, leftPath, 'Левый глаз', EyeSide.left)),
                 const SizedBox(width: 12),
-                Expanded(child: _photoCard(rightPath, 'Правый глаз')),
+                Expanded(child: _photoCard(context, rightPath, 'Правый глаз', EyeSide.right)),
               ],
             ),
             const SizedBox(height: 16),
@@ -63,7 +69,12 @@ class DiagnosisSummaryScreen extends StatelessWidget {
     );
   }
 
-  Widget _photoCard(String path, String title) {
+  Widget _photoCard(
+    BuildContext context,
+    String path,
+    String title,
+    EyeSide side,
+  ) {
     final exists = File(path).existsSync();
     final image = exists
         ? Image.file(
@@ -84,6 +95,24 @@ class DiagnosisSummaryScreen extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.all(8),
             child: Text(title),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+            child: FilledButton.tonal(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => CameraScreen(
+                      examId: examId,
+                      onlySide: side,
+                      age: age,
+                      gender: gender,
+                    ),
+                  ),
+                );
+              },
+              child: Text('Переснять'),
+            ),
           ),
         ],
       ),
@@ -134,4 +163,3 @@ class DiagnosisSummaryScreen extends StatelessWidget {
     );
   }
 }
-

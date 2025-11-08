@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from fastapi import FastAPI, UploadFile, File, Form
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
@@ -18,7 +19,9 @@ BASE_DIR = Path(__file__).parent.resolve()
 INBOX = BASE_DIR / "ai_inbox"
 INBOX.mkdir(parents=True, exist_ok=True)
 
+MAX_UPLOAD_MB = 12
 app = FastAPI()
+app.add_middleware(CORSMiddleware, allow_origins=['*'], allow_methods=['*'], allow_headers=['*'])
 app.mount("/files", StaticFiles(directory=str(INBOX)), name="files")
 
 @app.get("/health")

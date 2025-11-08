@@ -37,13 +37,15 @@
 		<string>_dartobservatory._tcp</string>
 		<string>_dartVmService._tcp</string>
 		<string>_dartobservatory._tcp</string>
+		<string>_dartVmService._tcp</string>
+		<string>_dartobservatory._tcp</string>
 		<string>_dartObservatory._tcp</string>
 		<string>_dartVmService._tcp</string>
 	</array>
 	<key>NSCameraUsageDescription</key>
 	<string>Need camera for iris imaging</string>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>Нужен локальный доступ для отладки Flutter (VM Service)</string>
+	<string>Required to discover Dart VM Service on local network during debugging</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Microphone access is required when recording video. (Not used in this build.)</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>

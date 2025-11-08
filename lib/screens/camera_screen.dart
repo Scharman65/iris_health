@@ -1,16 +1,22 @@
-import 'package:iris_health/models/eye_side.dart';
+import '../services/ai_client.dart';
+import '../services/exam_store.dart';
 import 'dart:io';
 import 'dart:typed_data';
+
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+
 import 'package:iris_health/l10n/localizations.dart';
-import 'package:iris_health/utils/sharp.dart';
-import 'package:iris_health/utils/quality_utils.dart';
-import 'package:iris_health/utils/circle_crop.dart';
+import 'package:iris_health/models/eye_side.dart';
 import 'package:iris_health/services/diagnosis_service.dart';
+import 'package:iris_health/utils/circle_crop.dart';
+import 'package:iris_health/utils/quality_utils.dart';
+import 'package:iris_health/utils/sharp.dart';
+
 import 'diagnosis_summary_screen.dart';
+
 
 class CameraScreen extends StatefulWidget {
   const CameraScreen({
@@ -37,13 +43,70 @@ class CameraScreen extends StatefulWidget {
 }
 
 class _CameraScreenState extends State<CameraScreen> {
+
+  Future<void> _shoot(String side) async {
+    final ctrl = _controller;
+    if (ctrl == null || !ctrl.value.isInitialized || _isCapturing) return;
+
+    _isCapturing = true;
+    if (mounted) setState(() {});
+
+    try {
+      while (ctrl.value.isTakingPicture) {
+        await Future.delayed(const Duration(milliseconds: 16));
+      }
+
+      final xf = await ctrl.takePicture();
+      final savedPath = await ExamStore.addPhotoSide(
+        examId: widget.examId,
+        srcPath: xf.path,
+        side: side,
+      );
+
+      try {
+        final res = await AiClient.instance.analyze(
+          examId: widget.examId,
+          side: side,
+          imagePath: savedPath,
+        );
+        await ExamStore.putAiResult(
+          examId: widget.examId,
+          side: side,
+          result: res,
+        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Отправлено в ИИ')),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Ошибка ИИ: $e')),
+          );
+        }
+      }
+    } finally {
+      _isCapturing = false;
+      if (mounted) setState(() {});
+    }
+  }
+
   CameraController? _controller;
   List<CameraDescription>? _cameras;
   bool _ready = false;
 
+  // мастер-режим: сначала левый, потом правый
   bool _leftDone = false;
-  Uint8List? _leftBestBytes;
-  Uint8List? _rightBestBytes;
+  Uint8List? _leftBytes;
+  Uint8List? _rightBytes;
+
+  // чтобы не ловить "Previous capture has not returned yet."
+  bool _isCapturing = false;
+
+  // Порог качества. В твоём последнем логе было 1265 (первый кадр) и 5145 (второй).
+  // Ставим 1500 — первый бы не прошёл, второй прошёл бы.
+  static const double _minSharp = 1500.0;
 
   @override
   void initState() {
@@ -55,21 +118,14 @@ class _CameraScreenState extends State<CameraScreen> {
     try {
       _cameras = await availableCameras();
 
-      // По умолчанию первая камера, но пытаемся выбрать «tele/zoom» для макро.
+      // ОБЩАЯ логика: без подстройки под конкретный айфон.
+      // Пытаемся взять заднюю, иначе первую попавшуюся.
       CameraDescription cam = _cameras!.first;
       final backs = _cameras!
           .where((c) => c.lensDirection == CameraLensDirection.back)
           .toList();
       if (backs.isNotEmpty) {
         cam = backs.first;
-        final tele = backs.firstWhere(
-          (c) {
-            final n = c.name.toLowerCase();
-            return n.contains('tele') || n.contains('zoom');
-          },
-          orElse: () => cam,
-        );
-        cam = tele;
       }
 
       _controller = CameraController(
@@ -80,14 +136,9 @@ class _CameraScreenState extends State<CameraScreen> {
       );
       await _controller!.initialize();
 
-      // Базовые настройки: без вспышки, пробуем x2 если доступно
+      // без вспышки
       try {
         await _controller!.setFlashMode(FlashMode.off);
-      } catch (_) {}
-      try {
-        final maxZoom = await _controller!.getMaxZoomLevel();
-        final targetZoom = maxZoom >= 2.0 ? 2.0 : 1.0;
-        await _controller!.setZoomLevel(targetZoom);
       } catch (_) {}
 
       if (!mounted) return;
@@ -106,109 +157,128 @@ class _CameraScreenState extends State<CameraScreen> {
     super.dispose();
   }
 
-  /// Серия снимков с оценкой яркости/бликов/резкости
-  Future<Uint8List?> _captureBestOf(
-    int count, {
-    double minSharp = 200.0,
-    int attempts = 3,
-  }) async {
-    if (_controller == null || !_controller!.value.isInitialized) return null;
-    Uint8List? bestBytes;
-    double best = -1;
+  /// ОДИН безопасный снимок, без серий.
+  /// Здесь же считаем яркость/блики/резкость и при необходимости просим переснять.
+  Future<Uint8List?> _captureSingleValidated() async {
+    final ctrl = _controller;
+    if (ctrl == null || !ctrl.value.isInitialized) return null;
+    if (_isCapturing) return null;
 
-    for (int a = 0; a < attempts; a++) {
-      bestBytes = null;
-      best = -1;
-      for (int i = 0; i < count; i++) {
-        final xf = await _controller!.takePicture();
-        final bytes = await xf.readAsBytes();
+    _isCapturing = true;
+    if (mounted) setState(() {});
 
-        final bright = meanBrightness(bytes);
-        final glare = glareRatio(bytes);
-
-        if (bright < 0.18) {
-          // темно → подсказка и пробуем включить «torch»
-          try {
-            await _controller!.setFlashMode(FlashMode.torch);
-          } catch (_) {}
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(S.of(context).t('too_dark'))),
-            );
-          }
-        } else if (glare > 0.02) {
-          // блики → подсказка и выключим вспышку
-          try {
-            await _controller!.setFlashMode(FlashMode.off);
-          } catch (_) {}
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(S.of(context).t('too_glare'))),
-            );
-          }
-        }
-
-        final s = sharpnessFromBytes(bytes);
-        if (s > best) {
-          best = s;
-          bestBytes = bytes;
-        }
-        await Future.delayed(const Duration(milliseconds: 150));
+    try {
+      // ждём, если камера ещё пишет предыдущий кадр
+      while (ctrl.value.isTakingPicture) {
+        await Future.delayed(const Duration(milliseconds: 16));
       }
-      if (best >= minSharp) break; // достаточно резкий кадр получили
+
+      final xf = await ctrl.takePicture();
+      final bytes = await xf.readAsBytes();
+
+      // Анализ качества
+      final bright = meanBrightness(bytes);
+      final glare = glareRatio(bytes);
+      final sharp = sharpnessFromBytes(bytes);
+      debugPrint('photo: bright=$bright glare=$glare sharp=$sharp');
+
+      // Подсказки по освещению
+      if (mounted) {
+        if (bright < 0.15) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(S.of(context).t('too_dark'))),
+          );
+        } else if (glare > 0.03) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(S.of(context).t('too_glare'))),
+          );
+        }
+      }
+
+      // Жёсткий порог по резкости: если мыло — просим переснять
+      if (sharp < _minSharp) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Снимок недостаточно резкий (${sharp.toStringAsFixed(0)} < ${_minSharp.toStringAsFixed(0)}). '
+                'Сделайте ещё раз.',
+              ),
+            ),
+          );
+        }
+        return null;
+      }
+
+      return bytes;
+    } on CameraException catch (e) {
+      debugPrint('CameraException single: ${e.code} ${e.description}');
+      return null;
+    } catch (e) {
+      debugPrint('Unknown capture error: $e');
+      return null;
+    } finally {
+      _isCapturing = false;
+      if (mounted) setState(() {});
     }
-    return bestBytes;
   }
 
-  Future<void> _shootSeries() async {
-    if (!_ready) return;
+  /// Нажатие на кнопку: режим пересъёмки или мастер
+  Future<void> _onShoot() async {
+    if (!_ready || _isCapturing) return;
 
-    // Если задана пересъёмка только одной стороны
+    // пересъёмка одной стороны
     if (widget.onlySide != null) {
-      final best = await _captureBestOf(3, minSharp: 200.0, attempts: 3);
-      if (best == null) return;
+      final bytes = await _captureSingleValidated();
+      if (bytes == null) return; // попросили переснять
 
-      final dir = await getApplicationDocumentsDirectory();
-      final folder = Directory(p.join(dir.path, 'exams', widget.examId));
-      await folder.create(recursive: true);
+      await _saveOneSide(widget.onlySide!, bytes);
 
-      if (widget.onlySide == EyeSide.left) {
-        final leftPath = p.join(folder.path, 'left.jpg');
-        final cropped =
-            cropIrisCenterCircle(best, radiusFactor: 0.32, maxSide: 1500);
-        await File(leftPath).writeAsBytes(cropped, flush: true);
-      } else {
-        final rightPath = p.join(folder.path, 'right.jpg');
-        final cropped =
-            cropIrisCenterCircle(best, radiusFactor: 0.32, maxSide: 1500);
-        await File(rightPath).writeAsBytes(cropped, flush: true);
-      }
-
-      // Возвращаемся назад (пересъёмка завершена)
       if (!mounted) return;
       Navigator.of(context).maybePop();
       return;
     }
 
-    // Режим мастера: сначала левый, затем правый
+    // мастер: левый -> правый
     if (!_leftDone) {
-      final best = await _captureBestOf(3, minSharp: 200.0, attempts: 3);
-      if (best == null) return;
+      final bytes = await _captureSingleValidated();
+      if (bytes == null) return; // переснять
+
       setState(() {
-        _leftBestBytes = best;
+        _leftBytes = bytes;
         _leftDone = true;
       });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(S.of(context).t('now_right'))),
+        );
+      }
       return;
     }
 
-    if (_leftDone && _rightBestBytes == null) {
-      final best = await _captureBestOf(3, minSharp: 200.0, attempts: 3);
-      if (best == null) return;
+    if (_leftDone && _rightBytes == null) {
+      final bytes = await _captureSingleValidated();
+      if (bytes == null) return; // переснять
+
       setState(() {
-        _rightBestBytes = best;
+        _rightBytes = bytes;
       });
+
       await _persistAndAnalyze();
     }
+  }
+
+  Future<void> _saveOneSide(EyeSide side, Uint8List bytes) async {
+    final dir = await getApplicationDocumentsDirectory();
+    final folder = Directory(p.join(dir.path, 'exams', widget.examId));
+    await folder.create(recursive: true);
+
+    final path = p.join(folder.path, side == EyeSide.left ? 'left.jpg' : 'right.jpg');
+
+    final cropped =
+        cropIrisCenterCircle(bytes, radiusFactor: 0.32, maxSide: 1500);
+    await File(path).writeAsBytes(cropped, flush: true);
   }
 
   Future<void> _persistAndAnalyze() async {
@@ -219,18 +289,17 @@ class _CameraScreenState extends State<CameraScreen> {
     final leftPath = p.join(folder.path, 'left.jpg');
     final rightPath = p.join(folder.path, 'right.jpg');
 
-    if (_leftBestBytes != null) {
+    if (_leftBytes != null) {
       final cropped =
-          cropIrisCenterCircle(_leftBestBytes!, radiusFactor: 0.32, maxSide: 1500);
+          cropIrisCenterCircle(_leftBytes!, radiusFactor: 0.32, maxSide: 1500);
       await File(leftPath).writeAsBytes(cropped, flush: true);
     }
-    if (_rightBestBytes != null) {
+    if (_rightBytes != null) {
       final cropped =
-          cropIrisCenterCircle(_rightBestBytes!, radiusFactor: 0.32, maxSide: 1500);
+          cropIrisCenterCircle(_rightBytes!, radiusFactor: 0.32, maxSide: 1500);
       await File(rightPath).writeAsBytes(cropped, flush: true);
     }
 
-    // Передаём возраст/пол только если заданы.
     final result = await DiagnosisService.analyzeAndSave(
       examId: widget.examId,
       leftPath: leftPath,
@@ -247,7 +316,9 @@ class _CameraScreenState extends State<CameraScreen> {
           examId: widget.examId,
           leftPath: leftPath,
           rightPath: rightPath,
-          aiResult: result, // aiResult может быть nullable на экране
+          aiResult: result,
+          age: widget.age,
+          gender: widget.gender,
         ),
       ),
     );
@@ -272,7 +343,8 @@ class _CameraScreenState extends State<CameraScreen> {
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 child: Text(
                   S.of(context).t('place_in_ring'),
                   style: const TextStyle(color: Colors.white, fontSize: 16),
@@ -291,7 +363,7 @@ class _CameraScreenState extends State<CameraScreen> {
         widget.onlySide == null ? !_leftDone : (widget.onlySide == EyeSide.left);
 
     return Scaffold(
-      appBar: AppBar(
+appBar: AppBar(
         title: Text(
           'Съёмка: ${takingLeft ? "ЛЕВЫЙ" : "ПРАВЫЙ"} глаз • ${widget.examId.substring(0, 8)}',
         ),
@@ -306,12 +378,18 @@ class _CameraScreenState extends State<CameraScreen> {
                   child: Padding(
                     padding: const EdgeInsets.all(20),
                     child: FilledButton.tonal(
-                      onPressed: _shootSeries,
-                      child: Text(
-                        takingLeft
-                            ? S.of(context).t('shoot_left')
-                            : S.of(context).t('shoot_right'),
-                      ),
+                      onPressed: _isCapturing ? null : _onShoot,
+                      child: _isCapturing
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : Text(
+                              takingLeft
+                                  ? S.of(context).t('shoot_left')
+                                  : S.of(context).t('shoot_right'),
+                            ),
                     ),
                   ),
                 ),

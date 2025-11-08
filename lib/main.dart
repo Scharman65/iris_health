@@ -1,3 +1,4 @@
+import 'services/ai_queue.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:iris_health/l10n/localizations.dart';
