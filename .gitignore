@@ -74,3 +74,9 @@ ios/build/
 android/build/
 android/.gradle/
 android/.cxx/
+.venv/
+__pycache__/
+ai_inbox/
+resp.json
+L.jpg
+R.jpg
