@@ -80,3 +80,13 @@ ai_inbox/
 resp.json
 L.jpg
 R.jpg
+# server artifacts
+ai_inbox/
+resp.json
+L.jpg
+R.jpg
+
+# backups and tmp
+*.bak*
+iris_ai_server.backup.*
+tmp_report/
