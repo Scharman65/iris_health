@@ -1,7 +1,8 @@
 import 'dart:typed_data';
+
 import 'package:camera/camera.dart';
+import 'package:image/image.dart' as img;
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:iris_health/utils/sharp.dart';
 
 class CameraProfile {
   final String cameraName;
@@ -28,41 +29,91 @@ class CameraProfile {
 
   /// Выбираем предпочтительную заднюю камеру: Tele/Zoom если есть, иначе первая задняя, иначе первая любая.
   static CameraDescription chooseBestCamera(List<CameraDescription> cameras) {
-    if (cameras.isEmpty) return cameras.first;
-    final backs = cameras.where((c) => c.lensDirection == CameraLensDirection.back).toList();
+    if (cameras.isEmpty) {
+      throw ArgumentError('chooseBestCamera: cameras list is empty');
+    }
+
+    final backs =
+        cameras.where((c) => c.lensDirection == CameraLensDirection.back).toList();
+
     if (backs.isEmpty) return cameras.first;
-    CameraDescription pick = backs.first;
-    final tele = backs.firstWhere(
+
+    return backs.firstWhere(
       (c) {
         final n = c.name.toLowerCase();
         return n.contains('tele') || n.contains('zoom');
       },
-      orElse: () => pick,
+      orElse: () => backs.first,
     );
-    pick = tele;
-    return pick;
   }
 
   /// Быстрая проба резкости на 1× и 2×. Возвращает рекомендуемый зум.
   static Future<double> probeBestZoom(CameraController controller) async {
     double bestZoom = 1.0;
-    double bestScore = -1;
+    double bestScore = -1.0;
 
     final maxZoom = await controller.getMaxZoomLevel();
     final candidates = <double>[1.0, if (maxZoom >= 2.0) 2.0];
+
     for (final z in candidates) {
       try {
         await controller.setZoomLevel(z);
+        await Future.delayed(const Duration(milliseconds: 120));
+
         final shot = await controller.takePicture();
         final Uint8List bytes = await shot.readAsBytes();
+
         final s = sharpnessFromBytes(bytes);
         if (s > bestScore) {
-          bestScore = s; bestZoom = z;
+          bestScore = s;
+          bestZoom = z;
         }
-      } catch (_) { /* ignore, keep previous */ }
+      } catch (_) {}
     }
-    // вернуть комфортный, но не за пределами max:
+
     if (bestZoom > maxZoom) bestZoom = maxZoom;
     return bestZoom;
+  }
+
+  /// Оценка резкости (быстро и достаточно для выбора зума).
+  /// Важно: НЕ медицинская финальная оценка, а техническая проба "что резче".
+  static double sharpnessFromBytes(Uint8List jpegBytes) {
+    final decoded = img.decodeImage(jpegBytes);
+    if (decoded == null) return 0.0;
+
+    final gray = img.grayscale(decoded);
+
+    final int w = gray.width;
+    final int h = gray.height;
+    final int longSide = w > h ? w : h;
+    final double scale = longSide > 256 ? 256.0 / longSide : 1.0;
+
+    final img.Image small = scale < 1.0
+        ? img.copyResize(
+            gray,
+            width: (w * scale).round().clamp(16, 4096),
+            height: (h * scale).round().clamp(16, 4096),
+            interpolation: img.Interpolation.average,
+          )
+        : gray;
+
+    double sum = 0.0;
+
+    int lumAt(int x, int y) {
+      final px = small.getPixel(x, y);
+      // image: ^4.x возвращает Pixel с каналами .r/.g/.b
+      return px.r.toInt();
+    }
+
+    for (int y = 1; y < small.height - 1; y++) {
+      for (int x = 1; x < small.width - 1; x++) {
+        final gx = (lumAt(x + 1, y) - lumAt(x - 1, y)).abs();
+        final gy = (lumAt(x, y + 1) - lumAt(x, y - 1)).abs();
+        sum += (gx + gy);
+      }
+    }
+
+    final denom = ((small.width - 2) * (small.height - 2)).clamp(1, 1 << 30);
+    return sum / denom;
   }
 }

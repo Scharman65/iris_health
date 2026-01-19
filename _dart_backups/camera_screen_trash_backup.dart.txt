@@ -1,0 +1,319 @@
+import 'dart:typed_data';
+import 'dart:convert';
+import 'dart:math';
+import 'package:flutter/material.dart';
+import 'package:camera/camera.dart';
+import 'package:http/http.dart' as http;
+import 'package:image/image.dart' as img;
+
+import '../widgets/camera_overlay.dart';
+import 'summary_screen.dart';
+
+const String kAiEndpoint = String.fromEnvironment(
+  'AI_ENDPOINT',
+  defaultValue: 'http://127.0.0.1:8010/analyze',
+);
+
+class CameraScreen extends StatefulWidget {
+  final String examId;
+  final int age;
+  final String gender;
+
+  const CameraScreen({
+    Key? key,
+    required this.examId,
+    required this.age,
+    required this.gender,
+  }) : super(key: key);
+
+  @override
+  State<CameraScreen> createState() => _CameraScreenState();
+}
+
+class _CameraScreenState extends State<CameraScreen> {
+  CameraController? _controller;
+  bool _initializing = true;
+
+  Uint8List? _leftBytes;
+  Uint8List? _rightBytes;
+
+  bool _leftDone = false;
+  bool _rightDone = false;
+  bool _isCapturing = false;
+
+  double _currentZoom = 1.0;
+  double _maxZoom = 2.2;
+
+  double _focusDepth = 0.0;
+  bool _torch = false;
+
+  bool get _ready => _leftDone && _rightDone;
+
+  @override
+  void initState() {
+    super.initState();
+    _initCamera();
+  }
+
+  Future<void> _initCamera() async {
+    final cameras = await availableCameras();
+    final cam = cameras.firstWhere(
+      (c) => c.lensDirection == CameraLensDirection.back,
+      orElse: () => cameras.first,
+    );
+
+    final c = CameraController(
+      cam,
+      ResolutionPreset.max,
+      enableAudio: false,
+      imageFormatGroup: ImageFormatGroup.jpeg,
+    );
+
+    _controller = c;
+    await c.initialize();
+
+    final mz = await c.getMaxZoomLevel();
+    _maxZoom = min(mz, 3.0);
+
+    await c.setZoomLevel(2.0);
+    _currentZoom = 2.0;
+
+    _initializing = false;
+    setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _controller?.dispose();
+    super.dispose();
+  }
+
+  // ---------- ЧЁТКОСТЬ ----------
+  double _sharp(img.Image im) {
+    final w = im.width;
+    final h = im.height;
+
+    double sum = 0;
+    int count = 0;
+
+    const kernel = [
+      0,1,0,
+      1,-4,1,
+      0,1,0,
+    ];
+
+    for (int y = 1; y < h - 1; y++) {
+      for (int x = 1; x < w - 1; x++) {
+        double lap = 0;
+        int k = 0;
+
+        for (int ky = -1; ky <= 1; ky++) {
+          for (int kx = -1; kx <= 1; kx++) {
+            final px = img.getLuminance(im.getPixel(x + kx, y + ky));
+            lap += px * kernel[k++];
+          }
+        }
+
+        sum += lap * lap;
+        count++;
+      }
+    }
+
+    return sum / max(count, 1);
+  }
+
+  // ---------- ОБРЕЗКА КРУГА ----------
+  Future<Uint8List> _cutCircle(Uint8List bytes) async {
+    final decoded = img.decodeImage(bytes)!;
+    final size = min(decoded.width, decoded.height);
+
+    final crop = img.copyCrop(
+      decoded,
+      x: (decoded.width - size) ~/ 2,
+      y: (decoded.height - size) ~/ 2,
+      width: size,
+      height: size,
+    );
+
+    final mask = img.Image(width: size, height: size);
+    img.fill(mask, color: img.ColorRgba8(0, 0, 0, 0));
+
+    final cx = size / 2;
+    final cy = size / 2;
+    final r = size / 2;
+
+    for (int y = 0; y < size; y++) {
+      for (int x = 0; x < size; x++) {
+        final dx = x - cx;
+        final dy = y - cy;
+        if (dx * dx + dy * dy <= r * r) {
+          mask.setPixel(x, y, crop.getPixel(x, y));
+        }
+      }
+    }
+
+    return Uint8List.fromList(img.encodeJpg(mask, quality: 95));
+  }
+
+  // ---------- СЪЁМКА ----------
+  Future<void> _capture(String side) async {
+    if (_controller == null) return;
+
+    setState(() => _isCapturing = true);
+
+    try {
+      final file = await _controller!.takePicture();
+      final bytes = await file.readAsBytes();
+
+      final circ = await _cutCircle(bytes);
+      final decoded = img.decodeImage(circ)!;
+
+      final sh = _sharp(decoded);
+      if (sh < 40) {
+        setState(() => _isCapturing = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Чёткость низкая ($sh). Попробуй снова.')),
+        );
+        return;
+      }
+
+      setState(() {
+        if (side == 'left') {
+          _leftBytes = circ;
+          _leftDone = true;
+        } else {
+          _rightBytes = circ;
+          _rightDone = true;
+        }
+        _isCapturing = false;
+      });
+    } catch (e) {
+      setState(() => _isCapturing = false);
+    }
+  }
+
+  // ---------- ЗАПРОС НА СЕРВЕР ----------
+  Future<Map<String, dynamic>?> _callServer(String side, Uint8List bytes) async {
+    try {
+      final req = http.MultipartRequest('POST', Uri.parse(kAiEndpoint));
+
+      req.fields['exam_id'] = widget.examId;
+      req.fields['age'] = widget.age.toString();
+      req.fields['gender'] = widget.gender;
+      req.fields['locale'] = 'ru';
+      req.fields['task'] = 'Иридодиагностика';
+      req.fields['side'] = side;
+
+      req.files.add(
+        http.MultipartFile.fromBytes(
+          'file',
+          bytes,
+          filename: '${widget.examId}_$side.jpg',
+        ),
+      );
+
+      final streamed = await req.send();
+      final resp = await http.Response.fromStream(streamed);
+
+      if (resp.statusCode != 200) {
+        debugPrint("AI HTTP error ${resp.statusCode}");
+        return null;
+      }
+
+      final decoded = json.decode(resp.body);
+      return decoded is Map<String, dynamic> ? decoded : null;
+    } catch (e) {
+      debugPrint("AI network error: $e");
+      return null;
+    }
+  }
+
+  // ---------- АНАЛИЗ ----------
+  Future<void> _analyze() async {
+    if (!_ready) return;
+
+    final left = await _callServer('left', _leftBytes!);
+    final right = await _callServer('right', _rightBytes!);
+
+    if (left == null || right == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Ошибка сервера')),
+      );
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => SummaryScreen(
+          examId: widget.examId,
+          left: left,
+          right: right,
+        ),
+      ),
+    );
+  }
+
+  // ---------- UI ----------
+  @override
+  Widget build(BuildContext context) {
+    if (_initializing) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Irido Diagnostics (${widget.examId})'),
+      ),
+      body: SafeArea(
+        child: Column(
+          children: [
+            Expanded(
+              child: Stack(
+                children: [
+                  CameraPreview(_controller!),
+                  const IrisOverlay(),
+                ],
+              ),
+            ),
+
+            Slider(
+              value: _currentZoom,
+              min: 1.0,
+              max: _maxZoom,
+              onChanged: (v) async {
+                setState(() => _currentZoom = v);
+                await _controller!.setZoomLevel(v);
+              },
+            ),
+
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                ElevatedButton(
+                  onPressed: _isCapturing ? null : () => _capture('left'),
+                  child: Text(_leftDone ? 'Левый ✓' : 'Снять левый'),
+                ),
+                ElevatedButton(
+                  onPressed: _isCapturing ? null : () => _capture('right'),
+                  child: Text(_rightDone ? 'Правый ✓' : 'Снять правый'),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 8),
+
+            ElevatedButton(
+              onPressed: _ready && !_isCapturing ? _analyze : null,
+              child: const Text('Отправить на анализ'),
+            ),
+
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+}

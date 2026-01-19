@@ -1,33 +1,45 @@
-PORT ?= 8010
-PIDFILE := /tmp/iris_ai.$(PORT).pid
-LOGFILE := /tmp/iris_ai.$(PORT).log
+.PHONY: ai-up ai-down ai-tail ios-run ios-clean ios-release test-cycle smoke
 
-.PHONY: start stop restart status logs health smoke
+ai-up:
+	@source .venv/bin/activate 2>/dev/null || true; \
+	lsof -ti tcp:8010 | xargs kill -9 2>/dev/null || true; \
+	rm -f /tmp/iris_ai.8010.pid; rm -rf /tmp/iris_ai.8010.lock; \
+	: > /tmp/iris_ai.8010.log; \
+	nohup python3 -m uvicorn iris_ai_server:app --host 0.0.0.0 --port 8010 >> /tmp/iris_ai.8010.log 2>&1 & \
+	&& sleep 1 && curl -fsS http://127.0.0.1:8010/health | python3 -m json.tool
 
-start:
-	@if lsof -ti tcp:$(PORT) >/dev/null 2>&1; then echo RUNNING; exit 0; fi; \
-	nohup env PORT=$(PORT) bash scripts/run_server_prod.sh >/dev/null 2>&1 & sleep 1; \
-	P=$$(lsof -ti tcp:$(PORT) | head -n1); echo $$P > $(PIDFILE); \
-	test -n "$$P" && echo STARTED $$P || (echo START FAILED && exit 1)
+ai-down:
+	@lsof -ti tcp:8010 | xargs kill -9 2>/dev/null || true; \
+	echo "[AI] server stopped."
 
-stop:
-	@sh -lc 'test -f $(PIDFILE) && P=$$(cat $(PIDFILE)) || P=""; test -n "$$P" && kill -TERM $$P || true'
-	@sleep 0.5
-	@lsof -ti tcp:$(PORT) | xargs kill -9 2>/dev/null || true
-	@rm -f /tmp/iris_ai.$(PORT).pid /tmp/iris_ai.$(PORT).lock
-	@echo STOPPED
+ai-tail:
+	@tail -n 200 -f /tmp/iris_ai.8010.log
 
-restart: stop start
+ios-clean:
+	@pkill -f "flutter_tools.*(run|attach|logs)" 2>/dev/null || true; \
+	pkill -f iproxy 2>/dev/null || true; \
+	echo "[iOS] cleaned."
 
-status:
-	@lsof -iTCP:$(PORT) -sTCP:LISTEN -n -P || true
+ios-run:
+	@make ios-clean; \
+	fvm flutter run -d 00008110-000958EE01C0401E \
+	  --dart-define=AI_ENDPOINT=http://172.20.10.11:8010/analyze
 
-logs:
-	@touch $(LOGFILE)
-	@tail -n 200 -f $(LOGFILE)
+ios-release:
+	@fvm flutter build ios --release
 
-health:
-	@curl -fsS http://127.0.0.1:$(PORT)/health | python3 -m json.tool
+test-cycle:
+	@echo "=== FULL TEST CYCLE START ==="; \
+	make ai-up; \
+	make ios-run; \
+	make ai-tail
 
 smoke:
-	@PORT=$(PORT) bash scripts/smoke.sh
+	@echo "[SMOKE] Sending L.jpg/R.jpg"; \
+	curl -sS -o /tmp/smoke.json \
+		-F exam_id=SMOKE-TEST \
+		-F age=33 -F gender=male \
+		-F left=@/var/tmp/L.jpg \
+		-F right=@/var/tmp/R.jpg \
+		http://127.0.0.1:8010/analyze \
+		&& head -c 300 /tmp/smoke.json; echo

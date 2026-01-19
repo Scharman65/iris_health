@@ -1,3 +1,18 @@
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+
+    dependencies {
+        // Обновляем Android Gradle Plugin до современной версии
+        classpath 'com.android.tools.build:gradle:8.3.1'
+
+        // Kotlin Gradle Plugin (нужен для новых зависимостей)
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.25"
+    }
+}
+
 allprojects {
     repositories {
         google()
@@ -5,14 +20,20 @@ allprojects {
     }
 }
 
+// Общая директория сборки
 rootProject.buildDir = '../build'
+
+// Переносим buildDir для модулей
 subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"
 }
+
+// Убедиться что :app соберётся первым
 subprojects {
     project.evaluationDependsOn(':app')
 }
 
+// Команда clean
 tasks.register("clean", Delete) {
     delete rootProject.buildDir
 }

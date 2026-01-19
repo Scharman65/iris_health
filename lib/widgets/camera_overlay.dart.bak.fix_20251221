@@ -1,0 +1,86 @@
+import 'package:flutter/material.dart';
+import 'dart:math';
+
+/// Полупрозрачная маска + круглое медицинское "кольцо для зрачка".
+/// Зрачок должен быть точно в центре круга.
+/// Используется вместе с crop в CameraScreen.
+class IrisOverlay extends StatelessWidget {
+  const IrisOverlay({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: CustomPaint(
+        painter: _IrisOverlayPainter(),
+        size: Size.infinite,
+      ),
+    );
+  }
+}
+
+class _IrisOverlayPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+
+    // Масштаб как в CameraScreen.cropToCircle()
+    final radius = min(size.width, size.height) * 0.30;
+
+    // ------------------------------------------------------------
+    // 1) Маска: затемняем всё, КРОМЕ круга
+    // ------------------------------------------------------------
+    final outerPath = Path()..addRect(Offset.zero & size);
+    final innerPath = Path()
+      ..addOval(Rect.fromCircle(center: center, radius: radius));
+
+    // Внешний прямоугольник минус круг → затемнение вокруг окна
+    final maskPath = Path.combine(
+      PathOperation.difference,
+      outerPath,
+      innerPath,
+    );
+
+    final dimPaint = Paint()
+      ..color = Colors.black.withOpacity(0.55)
+      ..style = PaintingStyle.fill;
+
+    canvas.drawPath(maskPath, dimPaint);
+
+    // ------------------------------------------------------------
+    // 2) Белое контурное медицинское кольцо
+    // ------------------------------------------------------------
+    final ringPaint = Paint()
+      ..color = Colors.white.withOpacity(0.9)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 4;
+
+    canvas.drawCircle(center, radius, ringPaint);
+
+    // ------------------------------------------------------------
+    // 3) Вспомогательные микрометки (как на биомед. приборах)
+    // ------------------------------------------------------------
+    final tickPaint = Paint()
+      ..color = Colors.white.withOpacity(0.9)
+      ..strokeWidth = 2;
+
+    const tickLength = 14.0;
+    final ticks = <Offset>[
+      Offset(center.dx, center.dy - radius), // top
+      Offset(center.dx, center.dy + radius), // bottom
+      Offset(center.dx - radius, center.dy), // left
+      Offset(center.dx + radius, center.dy), // right
+    ];
+
+    for (final t in ticks) {
+      final dir = (t - center);
+      final norm = dir / dir.distance;
+
+      final p1 = center + norm * (radius - tickLength);
+      final p2 = center + norm * (radius + tickLength);
+      canvas.drawLine(p1, p2, tickPaint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}

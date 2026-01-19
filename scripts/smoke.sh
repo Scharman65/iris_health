@@ -1,25 +1,53 @@
 #!/usr/bin/env bash
-set -euo pipefail
-cd /Users/rs/Downloads/iris_health
-source .venv/bin/activate
-python3 - <<'PY'
-from PIL import Image,ImageDraw
-for n,c in [("L.jpg","gray"),("R.jpg","lightgray")]:
-    im=Image.new("RGB",(1000,1000),c)
-    d=ImageDraw.Draw(im)
-    d.ellipse((350,350,650,650),outline="black",width=8)
-    d.ellipse((470,470,530,530),outline="black",width=8)
-    im.save(n,quality=90)
-print("[OK] test images ready")
-PY
-curl -sS -w "\nHTTP=%{http_code}\n" -o resp.json -X POST "http://127.0.0.1:${PORT:-8000}/analyze" \
-  -F exam_id=TST001 -F age=31 -F gender=F -F locale=ru -F task=smoke \
-  -F left=@L.jpg -F right=@R.jpg
-python3 - <<'PY'
-import json, pathlib
-j=json.loads(pathlib.Path("resp.json").read_text())
-print(j["text_summary"])
-p=pathlib.Path("ai_inbox/TST001/report.txt")
-q=pathlib.Path("ai_inbox/TST001/report.pdf")
-print("[TXT]",p.exists(),p.stat().st_size,"[PDF]",q.exists(),q.stat().st_size)
-PY
+set -e
+
+PORT=${PORT:-8010}
+HOST="http://127.0.0.1:$PORT"
+
+echo "[1] Preparing test images..."
+
+if [ ! -f "L.jpg" ] || [ ! -f "R.jpg" ]; then
+  echo "[ERR] L.jpg or R.jpg not found"
+  exit 1
+fi
+
+echo "[OK] test images ready"
+
+JSON=$(curl -fsS -X POST \
+  -F "file_left=@L.jpg" \
+  -F "file_right=@R.jpg" \
+  "$HOST/analyze") || {
+    echo "[ERR] analyze failed"
+    exit 1
+}
+
+echo "HTTP=200"
+
+TXT=$(echo "$JSON" | jq -r '.text_summary')
+TXT_OK=False
+if [ -n "$TXT" ] && [ "$TXT" != "null" ]; then TXT_OK=True; fi
+
+echo "[TXT] $TXT_OK ${#TXT}"
+
+PDF_URL=$(echo "$JSON" | jq -r '.pdf_url')
+
+PDF_OK=False
+if [ "$PDF_URL" != "null" ]; then
+  TMP="tmp_test.pdf"
+  curl -fsS "$HOST$PDF_URL" --output "$TMP" 2>/dev/null || true
+
+  if [ -s "$TMP" ]; then PDF_OK=True; fi
+
+  rm -f "$TMP"
+fi
+
+echo "[PDF] $PDF_OK"
+
+if [ "$TXT_OK" = "True" ] && [ "$PDF_OK" = "True" ]; then
+  echo "[ALL GOOD] Smoke test passed"
+  exit 0
+else
+  echo "[WARN] Smoke test has issues"
+  exit 1
+fi
+

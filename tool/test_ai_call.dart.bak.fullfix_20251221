@@ -1,0 +1,42 @@
+import 'dart:io';
+
+import '../lib/services/ai_client.dart';
+
+Future<void> main() async {
+  final base = const String.fromEnvironment(
+    'AI_BASE',
+    defaultValue: 'http://172.20.10.11:8000',
+  );
+
+  final ai = AiClient(baseUri: Uri.parse(base));
+
+  final ok = await ai.health();
+  print('health: $ok');
+
+  final file = File('left_test.jpg');
+  if (!await file.exists()) {
+    print('left_test.jpg not found in project root');
+    exit(2);
+  }
+
+  final res = await ai.analyzeEye(
+    imageFile: file,
+    eye: 'left',
+  );
+
+  print(
+    'status=${res.status} '
+    'quality=${res.quality} '
+    'size=${res.sizeBytes} '
+    'took=${res.tookMs}ms',
+  );
+
+  for (final z in res.zones) {
+    print(
+      ' - ${z.name}: '
+      '${z.score.toStringAsFixed(2)}'
+      '${z.note != null ? " (${z.note})" : ""}',
+    );
+  }
+}
+
