@@ -296,6 +296,38 @@ async def analyze_eye(
 
     q = _basic_quality(img)
     q_scalar = _quality_scalar(q)
+
+    # --- IRIDA quality gate: reject low-quality images early ---
+    try:
+        q_threshold = float(0.60)
+    except Exception:
+        q_threshold = 0.60
+
+    if float(q_scalar) < q_threshold:
+        took_ms = int((time.time() - t0) * 1000)
+        # save file anyway for audit/debug
+        fp = _save_eye_file(exam_id, side, data)
+        return JSONResponse(
+            {
+                "status": "rejected",
+                "field": "file",
+                "filename": getattr(file, "filename", fp.name),
+                "content_type": getattr(file, "content_type", "image/jpeg"),
+                "size_bytes": size_bytes,
+                "quality": float(q_scalar),
+                "zones": [
+                    {
+                        "name": "quality_gate",
+                        "score": 0.0,
+                        "note": "Качество недостаточно для анализа"
+                    }
+                ],
+                "took_ms": took_ms,
+                "reason": "low_quality",
+                "recommendation": "retake_photo_better_light_focus_no_glare"
+            }
+        )
+
     zones = _zones_from_quality(q)
 
     fp = _save_eye_file(exam_id, side, data)
