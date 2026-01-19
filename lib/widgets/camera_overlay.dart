@@ -91,11 +91,27 @@ class _Hud extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              ok ? 'Готово к снимку' : 'Стабилизируйте кадр',
-              style: theme.textTheme.titleSmall?.copyWith(
-                color: ok ? Colors.greenAccent.withValues(alpha: 242) : Colors.white,
-              ),
+            Row(
+              children: [
+                Icon(
+                  Icons.circle,
+                  size: 10,
+                  color: ok
+                      ? Colors.greenAccent.withValues(alpha: 242)
+                      : Colors.white.withValues(alpha: 140),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    ok ? 'Готово к снимку' : 'Стабилизируйте кадр',
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      color: ok
+                          ? Colors.greenAccent.withValues(alpha: 242)
+                          : Colors.white,
+                    ),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 6),
             _line(theme, 'Резкость', sharpness.toStringAsFixed(1)),
