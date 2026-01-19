@@ -1,0 +1,29 @@
+IRIDOLOGICAL ANALYSIS REQUEST
+
+Examination ID: {{exam_id}}
+
+Patient parameters:
+• Age: {{age}}
+• Biological sex: {{sex}}
+
+Images provided:
+• Left iris photograph
+• Right iris photograph
+
+Task:
+1. Evaluate technical quality of each image.
+2. If quality is insufficient — reject analysis.
+3. If quality is sufficient:
+   - analyze left and right iris separately
+   - identify notable iris zones
+   - account for age and sex
+   - generate combined interpretation.
+
+Output requirements:
+• structured JSON
+• left eye section
+• right eye section
+• combined interpretation
+• disclaimer
+
+Begin analysis.
