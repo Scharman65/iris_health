@@ -176,7 +176,10 @@ class _CameraScreenState extends State<CameraScreen> {
   }
 
   Future<void> _capture(String side) async {
-    if (_controller == null || _orchestrator == null || _capturing || _sending) {
+    if (_controller == null ||
+        _orchestrator == null ||
+        _capturing ||
+        _sending) {
       return;
     }
 
@@ -222,8 +225,9 @@ class _CameraScreenState extends State<CameraScreen> {
   Uri _aiEndpoint({String? sideForQuery}) {
     final raw = kAiBaseUrl.trim();
     final base = raw.replaceAll(RegExp(r'/+$'), '');
-    final uri =
-        base.contains('/analyze-eye') ? Uri.parse(base) : Uri.parse('$base/analyze-eye');
+    final uri = base.contains('/analyze-eye')
+        ? Uri.parse(base)
+        : Uri.parse('$base/analyze-eye');
 
     if (sideForQuery == null) return uri;
     return uri.replace(queryParameters: {
@@ -292,7 +296,10 @@ class _CameraScreenState extends State<CameraScreen> {
 
     List<Map<String, dynamic>> zones(dynamic v) {
       if (v is List) {
-        return v.whereType<Map>().map((m) => m.cast<String, dynamic>()).toList();
+        return v
+            .whereType<Map>()
+            .map((m) => m.cast<String, dynamic>())
+            .toList();
       }
       return const [];
     }
@@ -369,7 +376,8 @@ class _CameraScreenState extends State<CameraScreen> {
     }
   }
 
-  Future<void> _tapToFocus(TapDownDetails details, BoxConstraints constraints) async {
+  Future<void> _tapToFocus(
+      TapDownDetails details, BoxConstraints constraints) async {
     final controller = _controller;
     if (controller == null) return;
     if (!controller.value.isInitialized) return;
@@ -396,7 +404,8 @@ class _CameraScreenState extends State<CameraScreen> {
     } catch (_) {}
 
     try {
-      await controller.setFocusMode(_focusLocked ? FocusMode.locked : FocusMode.auto);
+      await controller
+          .setFocusMode(_focusLocked ? FocusMode.locked : FocusMode.auto);
     } catch (_) {}
 
     try {
@@ -428,7 +437,8 @@ class _CameraScreenState extends State<CameraScreen> {
       await controller.setExposureMode(ExposureMode.auto);
     } catch (_) {}
     try {
-      await controller.setFocusMode(_focusLocked ? FocusMode.locked : FocusMode.auto);
+      await controller
+          .setFocusMode(_focusLocked ? FocusMode.locked : FocusMode.auto);
     } catch (_) {}
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -448,7 +458,15 @@ class _CameraScreenState extends State<CameraScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final title = !_leftDone ? 'Фото левого глаза' : (!_rightDone ? 'Фото правого глаза' : 'Готово');
+    final title = !_leftDone
+        ? 'Фото левого глаза'
+        : (!_rightDone ? 'Фото правого глаза' : 'Готово');
+
+    final frameOk = _calibrated &&
+        _stable &&
+        _readyFrame &&
+        (_liveSharpness >= _adaptiveThreshold);
+    final canShootNow = (!_bothDone) ? frameOk : true;
 
     return Scaffold(
       appBar: AppBar(
@@ -463,7 +481,9 @@ class _CameraScreenState extends State<CameraScreen> {
           ),
           IconButton(
             tooltip: 'Фокус в центр',
-            onPressed: (_controller == null || _capturing || _sending) ? null : _focusCenter,
+            onPressed: (_controller == null || _capturing || _sending)
+                ? null
+                : _focusCenter,
             icon: const Icon(Icons.center_focus_strong),
           ),
         ],
@@ -494,8 +514,10 @@ class _CameraScreenState extends State<CameraScreen> {
                         ),
                         if (_focusTapPos != null)
                           Positioned(
-                            left: (_focusTapPos!.dx - 22).clamp(0.0, constraints.maxWidth - 44),
-                            top: (_focusTapPos!.dy - 22).clamp(0.0, constraints.maxHeight - 44),
+                            left: (_focusTapPos!.dx - 22)
+                                .clamp(0.0, constraints.maxWidth - 44),
+                            top: (_focusTapPos!.dy - 22)
+                                .clamp(0.0, constraints.maxHeight - 44),
                             child: IgnorePointer(
                               child: Container(
                                 width: 44,
@@ -527,32 +549,47 @@ class _CameraScreenState extends State<CameraScreen> {
                                   Expanded(
                                     child: Text(
                                       'AF: ${_focusLocked ? "LOCK" : "AUTO"}',
-                                      style: Theme.of(context).textTheme.bodySmall,
+                                      style:
+                                          Theme.of(context).textTheme.bodySmall,
                                     ),
                                   ),
                                   Text(
                                     'Sharp ${_liveSharpness.toStringAsFixed(1)} / Th ${_adaptiveThreshold.toStringAsFixed(1)}',
-                                    style: Theme.of(context).textTheme.bodySmall,
+                                    style:
+                                        Theme.of(context).textTheme.bodySmall,
                                   ),
                                 ],
                               ),
                               const SizedBox(height: 8),
+                              if (!_bothDone && !frameOk)
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 8),
+                                  child: Text(
+                                    'Ждите зелёный индикатор (резкость/стабильность/калибровка)',
+                                    style:
+                                        Theme.of(context).textTheme.bodySmall,
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
                               FilledButton(
-                                onPressed: (_capturing || _sending)
-                                    ? null
-                                    : () async {
-                                        if (!_leftDone) {
-                                          await _capture('left');
-                                        } else if (!_rightDone) {
-                                          await _capture('right');
-                                        } else {
-                                          await _analyzeAndOpenSummary();
-                                        }
-                                      },
+                                onPressed:
+                                    (_capturing || _sending || !canShootNow)
+                                        ? null
+                                        : () async {
+                                            if (!_leftDone) {
+                                              await _capture('left');
+                                            } else if (!_rightDone) {
+                                              await _capture('right');
+                                            } else {
+                                              await _analyzeAndOpenSummary();
+                                            }
+                                          },
                                 child: Text(
                                   !_leftDone
                                       ? 'Снять левый глаз'
-                                      : (!_rightDone ? 'Снять правый глаз' : 'Анализ и итоги'),
+                                      : (!_rightDone
+                                          ? 'Снять правый глаз'
+                                          : 'Анализ и итоги'),
                                 ),
                               ),
                               const SizedBox(height: 8),
