@@ -1,0 +1,33 @@
+{
+  "exam_id": "EX-1763952082315-ox58",
+  "age": 33,
+  "gender": "male",
+  "task_received": "Иридодиагностика",
+  "left": {
+    "quality": {
+      "brightness": 0.14782687466275948,
+      "glare": 0.027814739578959156,
+      "sharp_lapvar": 3.843932867050171
+    },
+    "quality_flags": {
+      "ok": true,
+      "flags": []
+    },
+    "top_zones": [],
+    "score_map": "saved"
+  },
+  "right": {
+    "quality": {
+      "brightness": 0.1551121936257356,
+      "glare": 0.03091559411830576,
+      "sharp_lapvar": 3.5792059898376465
+    },
+    "quality_flags": {
+      "ok": true,
+      "flags": []
+    },
+    "top_zones": [],
+    "score_map": "saved"
+  },
+  "text_summary": "Краткое резюме:\nЛевый: ярк=0.15, блик=0.03, резк=1\nПравый: ярк=0.16, блик=0.03, резк=1"
+}

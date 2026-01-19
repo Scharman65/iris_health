@@ -1,416 +1,582 @@
-import '../services/ai_client.dart';
-import '../services/exam_store.dart';
+// lib/screens/camera_screen.dart
+import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
+import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 
-import 'package:iris_health/l10n/localizations.dart';
-import 'package:iris_health/models/eye_side.dart';
-import 'package:iris_health/services/diagnosis_service.dart';
-import 'package:iris_health/utils/circle_crop.dart';
-import 'package:iris_health/utils/quality_utils.dart';
-import 'package:iris_health/utils/sharp.dart';
-
+import '../camera/camera_orchestrator.dart';
+import '../camera/live_sharpness_analyzer.dart';
+import '../camera/macro_profile_storage.dart';
+import '../widgets/camera_overlay.dart';
 import 'diagnosis_summary_screen.dart';
 
+const String kAiBaseUrl = String.fromEnvironment(
+  'AI_BASE_URL',
+  defaultValue: 'http://172.20.10.11:8000',
+);
 
 class CameraScreen extends StatefulWidget {
+  final String examId;
+  final int age;
+  final String gender;
+
   const CameraScreen({
     super.key,
     required this.examId,
-    this.onlySide,
-    this.age,
-    this.gender,
+    required this.age,
+    required this.gender,
   });
-
-  /// Идентификатор обследования (папка хранения и сквозной ключ)
-  final String examId;
-
-  /// Если задано — снимаем только указанную сторону (для пересъёмки),
-  /// иначе мастер: левый → правый.
-  final EyeSide? onlySide;
-
-  /// Доп. параметры (могут быть не заданы).
-  final int? age;
-  final String? gender;
 
   @override
   State<CameraScreen> createState() => _CameraScreenState();
 }
 
 class _CameraScreenState extends State<CameraScreen> {
-
-  Future<void> _shoot(String side) async {
-    final ctrl = _controller;
-    if (ctrl == null || !ctrl.value.isInitialized || _isCapturing) return;
-
-    _isCapturing = true;
-    if (mounted) setState(() {});
-
-    try {
-      while (ctrl.value.isTakingPicture) {
-        await Future.delayed(const Duration(milliseconds: 16));
-      }
-
-      final xf = await ctrl.takePicture();
-      final savedPath = await ExamStore.addPhotoSide(
-        examId: widget.examId,
-        srcPath: xf.path,
-        side: side,
-      );
-
-      try {
-        final res = await AiClient.instance.analyze(
-          examId: widget.examId,
-          side: side,
-          imagePath: savedPath,
-        );
-        await ExamStore.putAiResult(
-          examId: widget.examId,
-          side: side,
-          result: res,
-        );
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Отправлено в ИИ')),
-          );
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Ошибка ИИ: $e')),
-          );
-        }
-      }
-    } finally {
-      _isCapturing = false;
-      if (mounted) setState(() {});
-    }
-  }
-
+  CameraOrchestrator? _orchestrator;
   CameraController? _controller;
-  List<CameraDescription>? _cameras;
-  bool _ready = false;
 
-  // мастер-режим: сначала левый, потом правый
+  Uint8List? _left;
+  Uint8List? _right;
+
   bool _leftDone = false;
-  Uint8List? _leftBytes;
-  Uint8List? _rightBytes;
+  bool _rightDone = false;
 
-  // чтобы не ловить "Previous capture has not returned yet."
-  bool _isCapturing = false;
+  bool _initializing = true;
+  bool _capturing = false;
+  bool _sending = false;
 
-  // Порог качества. В твоём последнем логе было 1265 (первый кадр) и 5145 (второй).
-  // Ставим 1500 — первый бы не прошёл, второй прошёл бы.
-  static const double _minSharp = 1500.0;
+  LiveSharpnessAnalyzer? _sharp;
+
+  double _liveSharpness = 0.0;
+  double _adaptiveThreshold = 0.0;
+  bool _stable = false;
+  bool _readyFrame = false;
+  bool _calibrated = false;
+
+  bool get _bothDone => _leftDone && _rightDone;
+
+  bool _focusLocked = false;
+  Offset? _focusTapPos;
+  Timer? _focusHideTimer;
 
   @override
   void initState() {
     super.initState();
-    _initCamera();
-  }
-
-  Future<void> _initCamera() async {
-    try {
-      _cameras = await availableCameras();
-
-      // ОБЩАЯ логика: без подстройки под конкретный айфон.
-      // Пытаемся взять заднюю, иначе первую попавшуюся.
-      CameraDescription cam = _cameras!.first;
-      final backs = _cameras!
-          .where((c) => c.lensDirection == CameraLensDirection.back)
-          .toList();
-      if (backs.isNotEmpty) {
-        cam = backs.first;
-      }
-
-      _controller = CameraController(
-        cam,
-        ResolutionPreset.max,
-        enableAudio: false,
-        imageFormatGroup: ImageFormatGroup.jpeg,
-      );
-      await _controller!.initialize();
-
-      // без вспышки
-      try {
-        await _controller!.setFlashMode(FlashMode.off);
-      } catch (_) {}
-
-      if (!mounted) return;
-      setState(() => _ready = true);
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Camera init error: $e')),
-      );
-    }
+    _initPipeline();
   }
 
   @override
   void dispose() {
-    _controller?.dispose();
+    _focusHideTimer?.cancel();
+    try {
+      _controller?.dispose();
+    } catch (_) {}
+    try {
+      _sharp?.dispose();
+    } catch (_) {}
     super.dispose();
   }
 
-  /// ОДИН безопасный снимок, без серий.
-  /// Здесь же считаем яркость/блики/резкость и при необходимости просим переснять.
-  Future<Uint8List?> _captureSingleValidated() async {
-    final ctrl = _controller;
-    if (ctrl == null || !ctrl.value.isInitialized) return null;
-    if (_isCapturing) return null;
-
-    _isCapturing = true;
-    if (mounted) setState(() {});
-
+  Future<void> _initPipeline() async {
     try {
-      // ждём, если камера ещё пишет предыдущий кадр
-      while (ctrl.value.isTakingPicture) {
-        await Future.delayed(const Duration(milliseconds: 16));
+      final cams = await availableCameras();
+
+      CameraDescription selectedCamera = cams.firstWhere(
+        (c) => c.lensDirection == CameraLensDirection.back,
+        orElse: () => cams.first,
+      );
+
+      final telephoto = cams.where(
+        (c) =>
+            c.lensDirection == CameraLensDirection.back &&
+            c.name.toLowerCase().contains('tele'),
+      );
+      if (telephoto.isNotEmpty) {
+        selectedCamera = telephoto.first;
       }
 
-      final xf = await ctrl.takePicture();
-      final bytes = await xf.readAsBytes();
+      final tmp = CameraController(
+        selectedCamera,
+        ResolutionPreset.max,
+        enableAudio: false,
+        imageFormatGroup: ImageFormatGroup.yuv420,
+      );
+      await tmp.initialize();
 
-      // Анализ качества
-      final bright = meanBrightness(bytes);
-      final glare = glareRatio(bytes);
-      final sharp = sharpnessFromBytes(bytes);
-      debugPrint('photo: bright=$bright glare=$glare sharp=$sharp');
+      final storage = MacroProfileStorage();
+      final profile = await storage.loadOrCreateProfile(tmp);
 
-      // Подсказки по освещению
-      if (mounted) {
-        if (bright < 0.15) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(S.of(context).t('too_dark'))),
-          );
-        } else if (glare > 0.03) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(S.of(context).t('too_glare'))),
-          );
-        }
-      }
+      await tmp.dispose();
 
-      // Жёсткий порог по резкости: если мыло — просим переснять
-      if (sharp < _minSharp) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'Снимок недостаточно резкий (${sharp.toStringAsFixed(0)} < ${_minSharp.toStringAsFixed(0)}). '
-                'Сделайте ещё раз.',
-              ),
-            ),
-          );
-        }
-        return null;
-      }
+      _sharp = LiveSharpnessAnalyzer(profile: profile);
 
-      return bytes;
-    } on CameraException catch (e) {
-      debugPrint('CameraException single: ${e.code} ${e.description}');
-      return null;
-    } catch (e) {
-      debugPrint('Unknown capture error: $e');
-      return null;
-    } finally {
-      _isCapturing = false;
-      if (mounted) setState(() {});
-    }
-  }
+      final orch = CameraOrchestrator(profile);
+      await orch.initialize();
 
-  /// Нажатие на кнопку: режим пересъёмки или мастер
-  Future<void> _onShoot() async {
-    if (!_ready || _isCapturing) return;
+      final controller = orch.controller;
 
-    // пересъёмка одной стороны
-    if (widget.onlySide != null) {
-      final bytes = await _captureSingleValidated();
-      if (bytes == null) return; // попросили переснять
+      try {
+        await controller.setFocusMode(FocusMode.auto);
+      } catch (_) {}
+      try {
+        await controller.setExposureMode(ExposureMode.auto);
+      } catch (_) {}
 
-      await _saveOneSide(widget.onlySide!, bytes);
+      try {
+        await controller.setFocusPoint(const Offset(0.5, 0.5));
+      } catch (_) {}
+      try {
+        await controller.setExposurePoint(const Offset(0.5, 0.5));
+      } catch (_) {}
+
+      await _startStream(controller);
+
+      _sharp!.stream.listen((data) {
+        if (!mounted) return;
+        setState(() {
+          _liveSharpness = data['sharpness'] ?? 0.0;
+          _adaptiveThreshold = data['threshold'] ?? 0.0;
+          _stable = data['stable'] ?? false;
+          _readyFrame = data['ready'] ?? false;
+          _calibrated = data['calibrated'] ?? false;
+        });
+      });
 
       if (!mounted) return;
-      Navigator.of(context).maybePop();
+      setState(() {
+        _orchestrator = orch;
+        _controller = controller;
+        _initializing = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _initializing = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Ошибка камеры: $e')),
+      );
+    }
+  }
+
+  Future<void> _startStream(CameraController controller) async {
+    if (controller.value.isStreamingImages) {
+      try {
+        await controller.stopImageStream();
+      } catch (_) {}
+      await Future.delayed(const Duration(milliseconds: 120));
+    }
+
+    await controller.startImageStream((CameraImage frame) {
+      _sharp?.handleCameraImage(frame);
+    });
+  }
+
+  Future<void> _capture(String side) async {
+    if (_controller == null || _orchestrator == null || _capturing || _sending) {
       return;
     }
 
-    // мастер: левый -> правый
-    if (!_leftDone) {
-      final bytes = await _captureSingleValidated();
-      if (bytes == null) return; // переснять
+    setState(() => _capturing = true);
 
-      setState(() {
-        _leftBytes = bytes;
-        _leftDone = true;
-      });
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(S.of(context).t('now_right'))),
-        );
+    try {
+      if (!_readyFrame || !_stable || !_calibrated) {
+        throw 'Кадр ещё не стабилен. Резкость: ${_liveSharpness.toStringAsFixed(1)}, '
+            'порог: ${_adaptiveThreshold.toStringAsFixed(1)}';
       }
-      return;
-    }
 
-    if (_leftDone && _rightBytes == null) {
-      final bytes = await _captureSingleValidated();
-      if (bytes == null) return; // переснять
+      try {
+        if (_controller!.value.isStreamingImages) {
+          await _controller!.stopImageStream();
+        }
+      } catch (_) {}
+      await Future.delayed(const Duration(milliseconds: 120));
 
+      final best = await _orchestrator!.captureBestIris();
+
+      if (!mounted) return;
       setState(() {
-        _rightBytes = bytes;
+        if (side == 'left') {
+          _left = best;
+          _leftDone = true;
+        } else {
+          _right = best;
+          _rightDone = true;
+        }
       });
 
-      await _persistAndAnalyze();
+      await _startStream(_controller!);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('$e')),
+      );
+    } finally {
+      if (mounted) setState(() => _capturing = false);
     }
   }
 
-  Future<void> _saveOneSide(EyeSide side, Uint8List bytes) async {
-    final dir = await getApplicationDocumentsDirectory();
-    final folder = Directory(p.join(dir.path, 'exams', widget.examId));
-    await folder.create(recursive: true);
+  Uri _aiEndpoint({String? sideForQuery}) {
+    final raw = kAiBaseUrl.trim();
+    final base = raw.replaceAll(RegExp(r'/+$'), '');
+    final uri =
+        base.contains('/analyze-eye') ? Uri.parse(base) : Uri.parse('$base/analyze-eye');
 
-    final path = p.join(folder.path, side == EyeSide.left ? 'left.jpg' : 'right.jpg');
-
-    final cropped =
-        cropIrisCenterCircle(bytes, radiusFactor: 0.32, maxSide: 1500);
-    await File(path).writeAsBytes(cropped, flush: true);
+    if (sideForQuery == null) return uri;
+    return uri.replace(queryParameters: {
+      ...uri.queryParameters,
+      'eye': sideForQuery,
+    });
   }
 
-  Future<void> _persistAndAnalyze() async {
-    final dir = await getApplicationDocumentsDirectory();
-    final folder = Directory(p.join(dir.path, 'exams', widget.examId));
-    await folder.create(recursive: true);
+  Future<Map<String, dynamic>> _postOneEye({
+    required String side,
+    required Uint8List bytes,
+  }) async {
+    final req = http.MultipartRequest('POST', _aiEndpoint(sideForQuery: side));
 
-    final leftPath = p.join(folder.path, 'left.jpg');
-    final rightPath = p.join(folder.path, 'right.jpg');
+    req.fields['exam_id'] = widget.examId;
+    req.fields['age'] = widget.age.toString();
+    req.fields['gender'] = widget.gender;
+    req.fields['side'] = side;
+    req.fields['locale'] = 'ru';
+    req.fields['task'] = 'Iridodiagnosis';
 
-    if (_leftBytes != null) {
-      final cropped =
-          cropIrisCenterCircle(_leftBytes!, radiusFactor: 0.32, maxSide: 1500);
-      await File(leftPath).writeAsBytes(cropped, flush: true);
-    }
-    if (_rightBytes != null) {
-      final cropped =
-          cropIrisCenterCircle(_rightBytes!, radiusFactor: 0.32, maxSide: 1500);
-      await File(rightPath).writeAsBytes(cropped, flush: true);
-    }
-
-    final result = await DiagnosisService.analyzeAndSave(
-      examId: widget.examId,
-      leftPath: leftPath,
-      rightPath: rightPath,
-      age: widget.age,
-      gender: widget.gender,
-    );
-
-    if (!mounted) return;
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (_) => DiagnosisSummaryScreen(
-          examId: widget.examId,
-          leftPath: leftPath,
-          rightPath: rightPath,
-          aiResult: result,
-          age: widget.age,
-          gender: widget.gender,
-        ),
+    req.files.add(
+      http.MultipartFile.fromBytes(
+        'file',
+        bytes,
+        filename: '${widget.examId}_$side.jpg',
+        contentType: MediaType('image', 'jpeg'),
       ),
     );
+
+    final streamed = await req.send().timeout(const Duration(seconds: 60));
+    final body = await streamed.stream.bytesToString();
+
+    if (streamed.statusCode != 200) {
+      throw 'AI error ${streamed.statusCode}: $body';
+    }
+
+    final decoded = jsonDecode(body);
+    if (decoded is Map<String, dynamic>) return decoded;
+    if (decoded is Map) return decoded.cast<String, dynamic>();
+    throw 'AI bad response: $body';
   }
 
-  Widget _previewWithOverlay() {
-    return Stack(
-      children: [
-        CameraPreview(_controller!),
-        Positioned.fill(
-          child: IgnorePointer(
-            child: CustomPaint(painter: _IrisRingPainter()),
+  Future<String> _saveTempJpg(String side, Uint8List bytes) async {
+    final dir = Directory.systemTemp;
+    final safeId = widget.examId.replaceAll(RegExp(r'[^a-zA-Z0-9_\-]'), '_');
+    final path = '${dir.path}/iris_${safeId}_$side.jpg';
+    final f = File(path);
+    await f.writeAsBytes(bytes, flush: true);
+    return path;
+  }
+
+  Map<String, dynamic> _toUiResult({
+    required Map<String, dynamic> left,
+    required Map<String, dynamic> right,
+  }) {
+    double q(dynamic v) {
+      if (v is num) return v.toDouble();
+      return double.tryParse(v?.toString() ?? '') ?? 0.0;
+    }
+
+    int ms(dynamic v) {
+      if (v is num) return v.toInt();
+      return int.tryParse(v?.toString() ?? '') ?? 0;
+    }
+
+    List<Map<String, dynamic>> zones(dynamic v) {
+      if (v is List) {
+        return v.whereType<Map>().map((m) => m.cast<String, dynamic>()).toList();
+      }
+      return const [];
+    }
+
+    final lq = q(left['quality']);
+    final rq = q(right['quality']);
+    final lt = ms(left['took_ms']);
+    final rt = ms(right['took_ms']);
+
+    final findings = <Map<String, dynamic>>[];
+
+    for (final z in zones(left['zones'])) {
+      findings.add({
+        'zone': 'L: ${z['name'] ?? '—'}',
+        'score': q(z['score']),
+        'note': z['note']?.toString(),
+      });
+    }
+    for (final z in zones(right['zones'])) {
+      findings.add({
+        'zone': 'R: ${z['name'] ?? '—'}',
+        'score': q(z['score']),
+        'note': z['note']?.toString(),
+      });
+    }
+
+    return {
+      'summary':
+          'AI OK. Quality: L=${lq.toStringAsFixed(2)}, R=${rq.toStringAsFixed(2)}. '
+              'Time: L=${lt}ms, R=${rt}ms.',
+      'findings': findings,
+      'raw': {'left': left, 'right': right},
+    };
+  }
+
+  Future<void> _analyzeAndOpenSummary() async {
+    if (_left == null || _right == null) return;
+    if (_sending) return;
+
+    setState(() => _sending = true);
+
+    try {
+      final leftBytes = _left!;
+      final rightBytes = _right!;
+
+      final leftPath = await _saveTempJpg('left', leftBytes);
+      final rightPath = await _saveTempJpg('right', rightBytes);
+
+      final leftRes = await _postOneEye(side: 'left', bytes: leftBytes);
+      final rightRes = await _postOneEye(side: 'right', bytes: rightBytes);
+
+      final ui = _toUiResult(left: leftRes, right: rightRes);
+
+      if (!mounted) return;
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => DiagnosisSummaryScreen(
+            examId: widget.examId,
+            leftPath: leftPath,
+            rightPath: rightPath,
+            aiResult: ui,
+            age: widget.age,
+            gender: widget.gender,
           ),
         ),
-        Align(
-          alignment: Alignment.topCenter,
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                color: Colors.black54,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                child: Text(
-                  S.of(context).t('place_in_ring'),
-                  style: const TextStyle(color: Colors.white, fontSize: 16),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Ошибка AI: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _sending = false);
+    }
+  }
+
+  Future<void> _tapToFocus(TapDownDetails details, BoxConstraints constraints) async {
+    final controller = _controller;
+    if (controller == null) return;
+    if (!controller.value.isInitialized) return;
+    if (_capturing || _sending) return;
+
+    final Size size = Size(constraints.maxWidth, constraints.maxHeight);
+    final Offset local = details.localPosition;
+
+    final double nx = (local.dx / size.width).clamp(0.0, 1.0);
+    final double ny = (local.dy / size.height).clamp(0.0, 1.0);
+
+    _focusHideTimer?.cancel();
+    setState(() => _focusTapPos = local);
+    _focusHideTimer = Timer(const Duration(milliseconds: 900), () {
+      if (!mounted) return;
+      setState(() => _focusTapPos = null);
+    });
+
+    try {
+      await controller.setFocusPoint(Offset(nx, ny));
+    } catch (_) {}
+    try {
+      await controller.setExposurePoint(Offset(nx, ny));
+    } catch (_) {}
+
+    try {
+      await controller.setFocusMode(_focusLocked ? FocusMode.locked : FocusMode.auto);
+    } catch (_) {}
+
+    try {
+      await controller.setExposureMode(ExposureMode.auto);
+    } catch (_) {}
+  }
+
+  Future<void> _setFocusLocked(bool locked) async {
+    final controller = _controller;
+    setState(() => _focusLocked = locked);
+    if (controller == null) return;
+    try {
+      await controller.setFocusMode(locked ? FocusMode.locked : FocusMode.auto);
+    } catch (_) {}
+  }
+
+  Future<void> _focusCenter() async {
+    final controller = _controller;
+    if (controller == null) return;
+
+    try {
+      await controller.setFocusPoint(const Offset(0.5, 0.5));
+    } catch (_) {}
+    try {
+      await controller.setExposurePoint(const Offset(0.5, 0.5));
+    } catch (_) {}
+
+    try {
+      await controller.setExposureMode(ExposureMode.auto);
+    } catch (_) {}
+    try {
+      await controller.setFocusMode(_focusLocked ? FocusMode.locked : FocusMode.auto);
+    } catch (_) {}
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final rb = context.findRenderObject();
+      if (rb is RenderBox) {
+        final s = rb.size;
+        _focusHideTimer?.cancel();
+        setState(() => _focusTapPos = Offset(s.width / 2, s.height / 2));
+        _focusHideTimer = Timer(const Duration(milliseconds: 700), () {
+          if (!mounted) return;
+          setState(() => _focusTapPos = null);
+        });
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final takingLeft =
-        widget.onlySide == null ? !_leftDone : (widget.onlySide == EyeSide.left);
+    final title = !_leftDone ? 'Фото левого глаза' : (!_rightDone ? 'Фото правого глаза' : 'Готово');
 
     return Scaffold(
-appBar: AppBar(
-        title: Text(
-          'Съёмка: ${takingLeft ? "ЛЕВЫЙ" : "ПРАВЫЙ"} глаз • ${widget.examId.substring(0, 8)}',
-        ),
+      appBar: AppBar(
+        title: Text(title),
+        actions: [
+          IconButton(
+            tooltip: _focusLocked ? 'AF Lock: ON' : 'AF Lock: OFF',
+            onPressed: (_controller == null || _capturing || _sending)
+                ? null
+                : () => _setFocusLocked(!_focusLocked),
+            icon: Icon(_focusLocked ? Icons.lock : Icons.lock_open),
+          ),
+          IconButton(
+            tooltip: 'Фокус в центр',
+            onPressed: (_controller == null || _capturing || _sending) ? null : _focusCenter,
+            icon: const Icon(Icons.center_focus_strong),
+          ),
+        ],
       ),
-      body: !_ready
+      body: _initializing
           ? const Center(child: CircularProgressIndicator())
-          : Stack(
-              children: [
-                Positioned.fill(child: _previewWithOverlay()),
-                Align(
-                  alignment: Alignment.bottomCenter,
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: FilledButton.tonal(
-                      onPressed: _isCapturing ? null : _onShoot,
-                      child: _isCapturing
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : Text(
-                              takingLeft
-                                  ? S.of(context).t('shoot_left')
-                                  : S.of(context).t('shoot_right'),
+          : (_controller == null
+              ? const Center(child: Text('Камера недоступна'))
+              : LayoutBuilder(
+                  builder: (context, constraints) {
+                    return Stack(
+                      children: [
+                        Positioned.fill(
+                          child: GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTapDown: (d) => _tapToFocus(d, constraints),
+                            child: CameraPreview(_controller!),
+                          ),
+                        ),
+                        Positioned.fill(
+                          child: CameraOverlay(
+                            sharpness: _liveSharpness,
+                            threshold: _adaptiveThreshold,
+                            stable: _stable,
+                            ready: _readyFrame,
+                            calibrated: _calibrated,
+                          ),
+                        ),
+                        if (_focusTapPos != null)
+                          Positioned(
+                            left: (_focusTapPos!.dx - 22).clamp(0.0, constraints.maxWidth - 44),
+                            top: (_focusTapPos!.dy - 22).clamp(0.0, constraints.maxHeight - 44),
+                            child: IgnorePointer(
+                              child: Container(
+                                width: 44,
+                                height: 44,
+                                decoration: BoxDecoration(
+                                  border: Border.all(
+                                    color: Colors.white.withValues(alpha: 217),
+                                    width: 2,
+                                  ),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
                             ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+                          ),
+                        Positioned(
+                          left: 16,
+                          right: 16,
+                          bottom: 16,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              if (_sending)
+                                const Padding(
+                                  padding: EdgeInsets.only(bottom: 12),
+                                  child: LinearProgressIndicator(),
+                                ),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      'AF: ${_focusLocked ? "LOCK" : "AUTO"}',
+                                      style: Theme.of(context).textTheme.bodySmall,
+                                    ),
+                                  ),
+                                  Text(
+                                    'Sharp ${_liveSharpness.toStringAsFixed(1)} / Th ${_adaptiveThreshold.toStringAsFixed(1)}',
+                                    style: Theme.of(context).textTheme.bodySmall,
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              FilledButton(
+                                onPressed: (_capturing || _sending)
+                                    ? null
+                                    : () async {
+                                        if (!_leftDone) {
+                                          await _capture('left');
+                                        } else if (!_rightDone) {
+                                          await _capture('right');
+                                        } else {
+                                          await _analyzeAndOpenSummary();
+                                        }
+                                      },
+                                child: Text(
+                                  !_leftDone
+                                      ? 'Снять левый глаз'
+                                      : (!_rightDone ? 'Снять правый глаз' : 'Анализ и итоги'),
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              if (_bothDone)
+                                OutlinedButton(
+                                  onPressed: (_capturing || _sending)
+                                      ? null
+                                      : () {
+                                          setState(() {
+                                            _left = null;
+                                            _right = null;
+                                            _leftDone = false;
+                                            _rightDone = false;
+                                          });
+                                        },
+                                  child: const Text('Переснять оба'),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                )),
     );
   }
-}
-
-class _IrisRingPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = (size.shortestSide * 0.32);
-    final paint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3
-      ..color = const Color(0xCCFFFFFF);
-    canvas.drawCircle(center, radius, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

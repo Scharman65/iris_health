@@ -1,0 +1,33 @@
+{
+  "exam_id": "EX-1763469154242-jkfz",
+  "age": 37,
+  "gender": "male",
+  "task_received": "",
+  "left": {
+    "quality": {
+      "brightness": 0.22769733159041394,
+      "glare": 2.962962962962963e-06,
+      "sharp_lapvar": 2.495662212371826
+    },
+    "quality_flags": {
+      "ok": true,
+      "flags": []
+    },
+    "top_zones": [],
+    "score_map": "saved"
+  },
+  "right": {
+    "quality": {
+      "brightness": 0.2294732316630356,
+      "glare": 2.3703703703703703e-06,
+      "sharp_lapvar": 2.2198452949523926
+    },
+    "quality_flags": {
+      "ok": true,
+      "flags": []
+    },
+    "top_zones": [],
+    "score_map": "saved"
+  },
+  "text_summary": "Краткое резюме:\nЛевый: ярк=0.23, блик=0.00, резк=1\nПравый: ярк=0.23, блик=0.00, резк=1"
+}

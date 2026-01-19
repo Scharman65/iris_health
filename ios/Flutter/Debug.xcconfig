@@ -1,2 +1,16 @@
-#include "Generated.xcconfig"
 #include "../Pods/Target Support Files/Pods-Runner/Pods-Runner.debug.xcconfig"
+#include "Generated.xcconfig"
+
+DEBUG_INFORMATION_FORMAT = dwarf-with-dsym
+
+STRIP_STYLE = non-global
+STRIP_SWIFT_SYMBOLS = NO
+COPY_PHASE_STRIP = NO
+STRIP_INSTALLED_PRODUCT = NO
+DEPLOYMENT_POSTPROCESSING = NO
+GCC_GENERATE_DEBUGGING_SYMBOLS = YES
+DEBUG_INFORMATION_FORMAT = dwarf-with-dsym
+
+CLANG_DEBUG_INFORMATION_LEVEL = line-tables-only
+OTHER_CFLAGS = $(inherited) -g
+OTHER_CPLUSPLUSFLAGS = $(inherited) -g

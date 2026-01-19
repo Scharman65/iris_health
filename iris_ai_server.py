@@ -212,3 +212,14 @@ async def analyze(
     result["report_pdf"] = f"/files/{exam_id}/report.pdf"
     result["report_txt"] = f"/files/{exam_id}/report.txt"
     return JSONResponse(result)
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(
+        "iris_ai_server:app",
+        host="0.0.0.0",
+        port=8010,
+        reload=False,
+        workers=1
+    )
+

@@ -1,0 +1,30 @@
+from pydantic import BaseModel
+from typing import Optional
+
+
+class EyeAnalysis(BaseModel):
+    brightness: float
+    glare: float
+    sharpness: float
+    diagnosis: str
+from pydantic import BaseModel
+from typing import Optional
+
+
+class EyeAnalysis(BaseModel):
+    brightness: float
+    glare: float
+    sharpness: float
+    diagnosis: str
+
+
+class AnalysisResponse(BaseModel):
+    left: EyeAnalysis
+    right: EyeAnalysis
+
+    # PDF может не создаться → None
+    pdf_url: Optional[str] = None
+
+    # Краткое текстовое резюме анализа
+    text_summary: Optional[str] = None
+

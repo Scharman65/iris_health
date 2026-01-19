@@ -1,32 +1,113 @@
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import 'ai_models.dart';
 
 class AiClient {
-  AiClient._();
-  static final instance = AiClient._();
+  static final AiClient instance = AiClient._();
 
-  // Можно переопределить флагом: --dart-define=AI_ENDPOINT=https://host/analyze
-  static final String _endpoint =
-      const String.fromEnvironment('AI_ENDPOINT', defaultValue: 'http://127.0.0.1:8000/analyze');
+  static const _prefsKey = 'ai_base_url';
 
-  Future<Map<String, dynamic>> analyze({
-    required String examId,
-    required String side, // 'left' | 'right'
-    required String imagePath,
-  }) async {
-    final uri = Uri.parse(_endpoint);
-    final req = http.MultipartRequest('POST', uri)
-      ..fields['exam_id'] = examId
-      ..fields['side'] = side
-      ..files.add(await http.MultipartFile.fromPath('image', imagePath));
+  final String _defaultBaseUrl = const String.fromEnvironment(
+    'AI_BASE_URL',
+    defaultValue: 'http://172.20.10.11:8000',
+  );
 
-    final resp = await http.Response.fromStream(await req.send());
-    if (resp.statusCode < 200 || resp.statusCode >= 300) {
-      throw HttpException('AI ${resp.statusCode}: ${resp.body}');
+  String _baseUrl = '';
+
+  AiClient._() {
+    _baseUrl = _normalize(_defaultBaseUrl);
+  }
+
+  String get baseUrl => _baseUrl;
+
+  String _normalize(String s) {
+    final t = s.trim();
+    if (t.isEmpty) return '';
+    return t.replaceAll(RegExp(r'/+$'), '');
+  }
+
+  Uri _u(String path) {
+    final b = _normalize(_baseUrl);
+    final p = path.startsWith('/') ? path : '/$path';
+    return Uri.parse('$b$p');
+  }
+
+  Future<void> init() async {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getString(_prefsKey);
+    if (saved != null && saved.trim().isNotEmpty) {
+      _baseUrl = _normalize(saved);
+    } else {
+      _baseUrl = _normalize(_defaultBaseUrl);
     }
-    final json = jsonDecode(resp.body);
-    if (json is Map<String, dynamic>) return json;
-    return {'raw': json};
+  }
+
+  Future<void> setBaseUrl(String newBaseUrl) async {
+    final n = _normalize(newBaseUrl);
+    if (n.isEmpty) {
+      throw Exception('baseUrl is empty');
+    }
+    _baseUrl = n;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_prefsKey, _baseUrl);
+  }
+
+  Future<void> resetToDefault() async {
+    _baseUrl = _normalize(_defaultBaseUrl);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_prefsKey);
+  }
+
+  Future<bool> health() async {
+    try {
+      final r = await http.get(_u('/health')).timeout(const Duration(seconds: 10));
+      return r.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<AiAnalyzeResponse> analyzeEye({
+    required File file,
+    required String side,
+    required String examId,
+    required int age,
+    required String gender,
+    String locale = 'ru',
+  }) async {
+    final uri = _u('/analyze-eye');
+    final req = http.MultipartRequest('POST', uri);
+
+    req.fields['eye'] = side;
+    req.fields['exam_id'] = examId;
+    req.fields['age'] = age.toString();
+    req.fields['gender'] = gender;
+    req.fields['locale'] = locale;
+    req.fields['task'] = 'Iridodiagnosis';
+
+    final bytes = await file.readAsBytes();
+    req.files.add(
+      http.MultipartFile.fromBytes(
+        'file',
+        bytes,
+        filename: '${examId}_$side.jpg',
+        contentType: MediaType('image', 'jpeg'),
+      ),
+    );
+
+    final streamed = await req.send().timeout(const Duration(seconds: 90));
+    final body = await streamed.stream.bytesToString();
+
+    if (streamed.statusCode != 200) {
+      throw Exception('AI error ${streamed.statusCode}: $body');
+    }
+
+    final jsonMap = jsonDecode(body) as Map<String, dynamic>;
+    return AiAnalyzeResponse.fromJson(jsonMap);
   }
 }

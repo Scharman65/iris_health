@@ -1,0 +1,33 @@
+{
+  "exam_id": "EX-1763421663650-fhdu",
+  "age": 33,
+  "gender": "male",
+  "task_received": "",
+  "left": {
+    "quality": {
+      "brightness": 0.17624320000000002,
+      "glare": 0.0030447407407407407,
+      "sharp_lapvar": 4.996723175048828
+    },
+    "quality_flags": {
+      "ok": true,
+      "flags": []
+    },
+    "top_zones": [],
+    "score_map": "saved"
+  },
+  "right": {
+    "quality": {
+      "brightness": 0.15951759941902688,
+      "glare": 0.00022281481481481482,
+      "sharp_lapvar": 2.270665407180786
+    },
+    "quality_flags": {
+      "ok": true,
+      "flags": []
+    },
+    "top_zones": [],
+    "score_map": "saved"
+  },
+  "text_summary": "Краткое резюме:\nЛевый: ярк=0.18, блик=0.00, резк=1\nПравый: ярк=0.16, блик=0.00, резк=1"
+}

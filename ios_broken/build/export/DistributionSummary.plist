@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Runner.ipa</key>
+	<array>
+		<dict>
+			<key>architectures</key>
+			<array>
+				<string>arm64</string>
+			</array>
+			<key>buildNumber</key>
+			<string>1</string>
+			<key>certificate</key>
+			<dict>
+				<key>SHA1</key>
+				<string>8E7642E2BE6938F8A4F7C58818180F650693700A</string>
+				<key>dateExpires</key>
+				<string>29. 7. 2026.</string>
+				<key>type</key>
+				<string>Apple Development</string>
+			</dict>
+			<key>embeddedBinaries</key>
+			<array>
+				<dict>
+					<key>architectures</key>
+					<array>
+						<string>arm64</string>
+					</array>
+					<key>buildNumber</key>
+					<string>1.0</string>
+					<key>certificate</key>
+					<dict>
+						<key>SHA1</key>
+						<string>8E7642E2BE6938F8A4F7C58818180F650693700A</string>
+						<key>dateExpires</key>
+						<string>29. 7. 2026.</string>
+						<key>type</key>
+						<string>Apple Development</string>
+					</dict>
+					<key>name</key>
+					<string>App.framework</string>
+					<key>team</key>
+					<dict>
+						<key>id</key>
+						<string>NRM5S9G6G2</string>
+						<key>name</key>
+						<string></string>
+					</dict>
+					<key>versionNumber</key>
+					<string>1.0</string>
+				</dict>
+				<dict>
+					<key>architectures</key>
+					<array>
+						<string>arm64</string>
+					</array>
+					<key>buildNumber</key>
+					<string>1.0</string>
+					<key>certificate</key>
+					<dict>
+						<key>SHA1</key>
+						<string>8E7642E2BE6938F8A4F7C58818180F650693700A</string>
+						<key>dateExpires</key>
+						<string>29. 7. 2026.</string>
+						<key>type</key>
+						<string>Apple Development</string>
+					</dict>
+					<key>name</key>
+					<string>Flutter.framework</string>
+					<key>team</key>
+					<dict>
+						<key>id</key>
+						<string>NRM5S9G6G2</string>
+						<key>name</key>
+						<string></string>
+					</dict>
+					<key>versionNumber</key>
+					<string>1.0</string>
+				</dict>
+				<dict>
+					<key>architectures</key>
+					<array>
+						<string>arm64</string>
+					</array>
+					<key>buildNumber</key>
+					<string>1</string>
+					<key>certificate</key>
+					<dict>
+						<key>SHA1</key>
+						<string>8E7642E2BE6938F8A4F7C58818180F650693700A</string>
+						<key>dateExpires</key>
+						<string>29. 7. 2026.</string>
+						<key>type</key>
+						<string>Apple Development</string>
+					</dict>
+					<key>name</key>
+					<string>camera_avfoundation.framework</string>
+					<key>team</key>
+					<dict>
+						<key>id</key>
+						<string>NRM5S9G6G2</string>
+						<key>name</key>
+						<string></string>
+					</dict>
+					<key>versionNumber</key>
+					<string>0.0.1</string>
+				</dict>
+				<dict>
+					<key>architectures</key>
+					<array>
+						<string>arm64</string>
+					</array>
+					<key>buildNumber</key>
+					<string>1</string>
+					<key>certificate</key>
+					<dict>
+						<key>SHA1</key>
+						<string>8E7642E2BE6938F8A4F7C58818180F650693700A</string>
+						<key>dateExpires</key>
+						<string>29. 7. 2026.</string>
+						<key>type</key>
+						<string>Apple Development</string>
+					</dict>
+					<key>name</key>
+					<string>path_provider_foundation.framework</string>
+					<key>team</key>
+					<dict>
+						<key>id</key>
+						<string>NRM5S9G6G2</string>
+						<key>name</key>
+						<string></string>
+					</dict>
+					<key>versionNumber</key>
+					<string>0.0.1</string>
+				</dict>
+			</array>
+			<key>entitlements</key>
+			<dict>
+				<key>application-identifier</key>
+				<string>NRM5S9G6G2.com.example.irisHealth</string>
+				<key>com.apple.developer.team-identifier</key>
+				<string>NRM5S9G6G2</string>
+				<key>get-task-allow</key>
+				<true/>
+			</dict>
+			<key>name</key>
+			<string>Runner.app</string>
+			<key>profile</key>
+			<dict>
+				<key>UUID</key>
+				<string>3d294f13-1389-4577-926f-e3d41fd08cf1</string>
+				<key>dateExpires</key>
+				<string>4. 11. 2025.</string>
+				<key>name</key>
+				<string>iOS Team Provisioning Profile: com.example.irisHealth</string>
+			</dict>
+			<key>team</key>
+			<dict>
+				<key>id</key>
+				<string>NRM5S9G6G2</string>
+				<key>name</key>
+				<string></string>
+			</dict>
+		</dict>
+	</array>
+</dict>
+</plist>

@@ -1,0 +1,33 @@
+{
+  "exam_id": "EX-1763421061866-vhii",
+  "age": 33,
+  "gender": "female",
+  "task_received": "",
+  "left": {
+    "quality": {
+      "brightness": 0.161932393318809,
+      "glare": 0.0008284444444444445,
+      "sharp_lapvar": 3.422637701034546
+    },
+    "quality_flags": {
+      "ok": true,
+      "flags": []
+    },
+    "top_zones": [],
+    "score_map": "saved"
+  },
+  "right": {
+    "quality": {
+      "brightness": 0.17341023093681918,
+      "glare": 0.00031585185185185183,
+      "sharp_lapvar": 1.5880870819091797
+    },
+    "quality_flags": {
+      "ok": true,
+      "flags": []
+    },
+    "top_zones": [],
+    "score_map": "saved"
+  },
+  "text_summary": "Краткое резюме:\nЛевый: ярк=0.16, блик=0.00, резк=1\nПравый: ярк=0.17, блик=0.00, резк=1"
+}

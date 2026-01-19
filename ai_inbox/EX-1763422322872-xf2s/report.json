@@ -1,0 +1,33 @@
+{
+  "exam_id": "EX-1763422322872-xf2s",
+  "age": 33,
+  "gender": "female",
+  "task_received": "",
+  "left": {
+    "quality": {
+      "brightness": 0.1887299276688453,
+      "glare": 0.002578962962962963,
+      "sharp_lapvar": 1.7467384338378906
+    },
+    "quality_flags": {
+      "ok": true,
+      "flags": []
+    },
+    "top_zones": [],
+    "score_map": "saved"
+  },
+  "right": {
+    "quality": {
+      "brightness": 0.17815303529411763,
+      "glare": 0.0009973333333333334,
+      "sharp_lapvar": 1.8189425468444824
+    },
+    "quality_flags": {
+      "ok": true,
+      "flags": []
+    },
+    "top_zones": [],
+    "score_map": "saved"
+  },
+  "text_summary": "Краткое резюме:\nЛевый: ярк=0.19, блик=0.00, резк=1\nПравый: ярк=0.18, блик=0.00, резк=1"
+}

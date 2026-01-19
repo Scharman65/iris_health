@@ -1,7 +1,5 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:iris_health/screens/camera_screen.dart';
-import 'package:iris_health/models/eye_side.dart';
 
 class DiagnosisSummaryScreen extends StatelessWidget {
   const DiagnosisSummaryScreen({
@@ -9,24 +7,17 @@ class DiagnosisSummaryScreen extends StatelessWidget {
     required this.examId,
     required this.leftPath,
     required this.rightPath,
+    required this.age,
+    required this.gender,
     this.aiResult,
-    this.age,
-    this.gender,
   });
 
-  /// Идентификатор обследования
   final String examId;
-
-  /// Пути к сохранённым кадрам (jpg внутри sandbox приложения)
   final String leftPath;
   final String rightPath;
-
-  /// Опциональные данные из ИИ (или заглушки)
+  final int age;
+  final String gender;
   final Map<String, dynamic>? aiResult;
-
-  /// Опциональные демографические параметры
-  final int? age;
-  final String? gender;
 
   @override
   Widget build(BuildContext context) {
@@ -43,22 +34,17 @@ class DiagnosisSummaryScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            if (age != null || (gender != null && gender!.isNotEmpty)) ...[
-              Text(
-                'Профиль: '
-                '${age != null ? 'возраст $age' : ''}'
-                '${(age != null && gender != null && gender!.isNotEmpty) ? ', ' : ''}'
-                '${(gender != null && gender!.isNotEmpty) ? 'пол $gender' : ''}',
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-              const SizedBox(height: 12),
-            ],
+            Text(
+              'Профиль: возраст $age, пол $gender',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 12),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(child: _photoCard(context, leftPath, 'Левый глаз', EyeSide.left)),
+                Expanded(child: _photoCard(leftPath, 'Левый глаз')),
                 const SizedBox(width: 12),
-                Expanded(child: _photoCard(context, rightPath, 'Правый глаз', EyeSide.right)),
+                Expanded(child: _photoCard(rightPath, 'Правый глаз')),
               ],
             ),
             const SizedBox(height: 16),
@@ -69,12 +55,7 @@ class DiagnosisSummaryScreen extends StatelessWidget {
     );
   }
 
-  Widget _photoCard(
-    BuildContext context,
-    String path,
-    String title,
-    EyeSide side,
-  ) {
+  Widget _photoCard(String path, String title) {
     final exists = File(path).existsSync();
     final image = exists
         ? Image.file(
@@ -95,24 +76,6 @@ class DiagnosisSummaryScreen extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.all(8),
             child: Text(title),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
-            child: FilledButton.tonal(
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => CameraScreen(
-                      examId: examId,
-                      onlySide: side,
-                      age: age,
-                      gender: gender,
-                    ),
-                  ),
-                );
-              },
-              child: Text('Переснять'),
-            ),
           ),
         ],
       ),
@@ -145,13 +108,29 @@ class DiagnosisSummaryScreen extends StatelessWidget {
               ...findings.map((f) {
                 final m = (f as Map).cast<String, dynamic>();
                 final zone = m['zone']?.toString() ?? '—';
-                final score = (m['score'] is num) ? (m['score'] as num).toStringAsFixed(2) : '—';
+                final score = (m['score'] is num)
+                    ? (m['score'] as num).toStringAsFixed(2)
+                    : '—';
+                final note = m['note']?.toString();
                 return Padding(
                   padding: const EdgeInsets.symmetric(vertical: 6),
-                  child: Row(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(child: Text(zone)),
-                      Text(score),
+                      Row(
+                        children: [
+                          Expanded(child: Text(zone)),
+                          Text(score),
+                        ],
+                      ),
+                      if (note != null && note.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 2),
+                          child: Text(
+                            note,
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ),
                     ],
                   ),
                 );

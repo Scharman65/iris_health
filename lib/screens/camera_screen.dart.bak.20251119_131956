@@ -1,0 +1,258 @@
+import 'dart:io';
+import 'dart:math';
+import 'package:flutter/material.dart';
+import 'package:camera/camera.dart';
+import 'package:hive/hive.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:iris_health/models/diagnosis_model.dart';
+import 'package:iris_health/screens/diagnosis_summary_screen.dart';
+import 'package:image/image.dart' as img;
+import 'package:uuid/uuid.dart';
+
+class CameraScreen extends StatefulWidget {
+  final int age;
+  final Gender gender;
+
+  const CameraScreen({
+    super.key,
+    required this.age,
+    required this.gender,
+  });
+
+  @override
+  State<CameraScreen> createState() => _CameraScreenState();
+}
+
+class _CameraScreenState extends State<CameraScreen> {
+  late List<CameraDescription> _cameras;
+  CameraController? _controller;
+  bool _isInitialized = false;
+  int _currentCameraIndex = 1;
+  String _instruction = 'Фото левого глаза';
+  String? _leftEyePath;
+  String? _rightEyePath;
+  final Uuid _uuid = const Uuid();
+
+  @override
+  void initState() {
+    super.initState();
+    _initCamera();
+  }
+
+  Future<void> _initCamera() async {
+    try {
+      _cameras = await availableCameras();
+      if (_cameras.isEmpty) {
+        print('Нет доступных камер.');
+        return;
+      }
+      if (_currentCameraIndex >= _cameras.length) {
+        _currentCameraIndex = 0;
+      }
+      await _startCamera(_cameras[_currentCameraIndex]);
+    } catch (e) {
+      print('Ошибка инициализации камеры: $e');
+    }
+  }
+
+  Future<void> _startCamera(CameraDescription description) async {
+    if (_controller != null) {
+      await _controller!.dispose();
+    }
+
+    _controller = CameraController(
+      description,
+      ResolutionPreset.high,
+      enableAudio: false,
+    );
+
+    try {
+      await _controller!.initialize();
+      if (mounted) {
+        setState(() => _isInitialized = true);
+      }
+    } on CameraException catch (e) {
+      print('Camera error: ${e.description}');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ошибка камеры: ${e.code}')),
+        );
+      }
+    }
+  }
+
+  Future<void> _switchCamera() async {
+    if (!mounted) return;
+
+    setState(() => _isInitialized = false);
+    _currentCameraIndex = (_currentCameraIndex + 1) % _cameras.length;
+    await _startCamera(_cameras[_currentCameraIndex]);
+  }
+
+  Future<void> _takePhoto() async {
+    if (_controller == null || !_controller!.value.isInitialized) return;
+
+    try {
+      final Directory appDir = await getApplicationDocumentsDirectory();
+      final String rawPath = '${appDir.path}/${_uuid.v4()}.jpg';
+
+      final XFile file = await _controller!.takePicture();
+      final File rawImage = await File(file.path).copy(rawPath);
+
+      final processedPath = await _processAndCropImage(rawImage);
+
+      if (processedPath == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Ошибка при обработке изображения.'),
+          ));
+        }
+        return;
+      }
+
+      await rawImage.delete();
+
+      if (!mounted) return;
+      setState(() {
+        if (_leftEyePath == null) {
+          _leftEyePath = processedPath;
+          _instruction = 'Фото правого глаза';
+        } else if (_rightEyePath == null) {
+          _rightEyePath = processedPath;
+          _saveDiagnosis();
+        }
+      });
+    } catch (e) {
+      print('Ошибка при съемке фото: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ошибка: ${e.toString()}')),
+        );
+      }
+    }
+  }
+
+  Future<String?> _processAndCropImage(File originalImage) async {
+    try {
+      final bytes = await originalImage.readAsBytes();
+      final image = img.decodeImage(bytes);
+      if (image == null) return null;
+
+      final int size = min(image.width, image.height);
+      final int centerX = image.width ~/ 2;
+      final int centerY = image.height ~/ 2;
+      final int startX = centerX - size ~/ 2;
+      final int startY = centerY - size ~/ 2;
+
+      final img.Image square = img.copyCrop(
+        image,
+        x: startX,
+        y: startY,
+        width: size,
+        height: size,
+      );
+
+      final img.Image circle = img.Image.filled(
+        size,
+        size,
+        img.ColorRgba8(0, 0, 0, 0),
+      );
+
+      final double radius = size / 2;
+      final double radiusSq = radius * radius;
+
+      for (int y = 0; y < size; y++) {
+        final double dy = y - radius;
+        for (int x = 0; x < size; x++) {
+          final double dx = x - radius;
+          if (dx * dx + dy * dy <= radiusSq) {
+            circle.setPixel(x, y, square.getPixel(x, y));
+          }
+        }
+      }
+
+      final Directory appDir = await getApplicationDocumentsDirectory();
+      final String newPath = '${appDir.path}/processed_${_uuid.v4()}.png';
+      await File(newPath).writeAsBytes(img.encodePng(circle));
+
+      return newPath;
+    } catch (e) {
+      print('Ошибка обработки изображения: $e');
+      return null;
+    }
+  }
+
+  Future<void> _saveDiagnosis() async {
+    try {
+      final box = await Hive.openBox<Diagnosis>('diagnoses');
+      final diagnosis = Diagnosis(
+        id: DateTime.now().millisecondsSinceEpoch,
+        age: widget.age,
+        gender: widget.gender,
+        leftEyeImagePath: _leftEyePath!,
+        rightEyeImagePath: _rightEyePath!,
+        date: DateTime.now(),
+      );
+      await box.add(diagnosis);
+
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => DiagnosisSummaryScreen(diagnosis: diagnosis),
+        ),
+      );
+    } catch (e) {
+      print('Ошибка сохранения диагноза: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ошибка сохранения: ${e.toString()}')),
+        );
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller?.dispose();
+    Hive.close();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(_instruction),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.cameraswitch),
+            onPressed: _switchCamera,
+          ),
+        ],
+      ),
+      body: _isInitialized && _controller != null
+          ? Column(
+              children: [
+                Expanded(
+                  child: AspectRatio(
+                    aspectRatio: _controller!.value.aspectRatio,
+                    child: CameraPreview(_controller!),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 20),
+                  child: ElevatedButton(
+                    onPressed: _takePhoto,
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                    ),
+                    child: const Text('Сделать снимок'),
+                  ),
+                ),
+              ],
+            )
+          : const Center(child: CircularProgressIndicator()),
+    );
+  }
+}

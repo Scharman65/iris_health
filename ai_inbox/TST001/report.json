@@ -1,0 +1,38 @@
+{
+  "exam_id": "TST001",
+  "age": 31,
+  "gender": "F",
+  "task_received": "smoke",
+  "left": {
+    "quality": {
+      "brightness": 0.4976822274509804,
+      "glare": 0.0,
+      "sharp_lapvar": 0.4667907953262329
+    },
+    "quality_flags": {
+      "ok": false,
+      "flags": [
+        {
+          "code": "blurry",
+          "msg": "Низкая резкость"
+        }
+      ]
+    },
+    "top_zones": [],
+    "score_map": "saved"
+  },
+  "right": {
+    "quality": {
+      "brightness": 0.8203687803921569,
+      "glare": 0.0,
+      "sharp_lapvar": 0.6982161998748779
+    },
+    "quality_flags": {
+      "ok": true,
+      "flags": []
+    },
+    "top_zones": [],
+    "score_map": "saved"
+  },
+  "text_summary": "Краткое резюме:\nЛевый: ярк=0.50, блик=0.00, резк=0\nПравый: ярк=0.82, блик=0.00, резк=1"
+}
