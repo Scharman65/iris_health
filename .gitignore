@@ -48,3 +48,6 @@ app.*.map.json
 .fvm/
 # local AI inbox (generated)
 ai_inbox/
+
+# Local-only archives
+_local_archives/
