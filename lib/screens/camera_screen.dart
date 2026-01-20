@@ -9,16 +9,15 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 
+import '../services/ai_client.dart';
+
 import '../camera/camera_orchestrator.dart';
 import '../camera/live_sharpness_analyzer.dart';
 import '../camera/macro_profile_storage.dart';
 import '../widgets/camera_overlay.dart';
 import 'diagnosis_summary_screen.dart';
 
-const String kAiBaseUrl = String.fromEnvironment(
-  'AI_BASE_URL',
-  defaultValue: 'http://172.20.10.11:8000',
-);
+// AI base URL is managed via AiClient (SharedPreferences + default fallback).
 
 class CameraScreen extends StatefulWidget {
   final String examId;
@@ -223,7 +222,7 @@ class _CameraScreenState extends State<CameraScreen> {
   }
 
   Uri _aiEndpoint({String? sideForQuery}) {
-    final raw = kAiBaseUrl.trim();
+    final raw = AiClient.instance.baseUrl.trim();
     final base = raw.replaceAll(RegExp(r'/+$'), '');
     final uri = base.contains('/analyze-eye')
         ? Uri.parse(base)
@@ -245,7 +244,7 @@ class _CameraScreenState extends State<CameraScreen> {
     req.fields['exam_id'] = widget.examId;
     req.fields['age'] = widget.age.toString();
     req.fields['gender'] = widget.gender;
-    req.fields['side'] = side;
+    req.fields['eye'] = side;
     req.fields['locale'] = 'ru';
     req.fields['task'] = 'Iridodiagnosis';
 
