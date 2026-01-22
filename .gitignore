@@ -56,3 +56,21 @@ _local_archives/
 *.bak.*
 *.bak_*
 *.broken_*
+
+# --- repo hygiene: backups / dumps (must never live in lib/ or be tracked) ---
+**/*.bak
+**/*.bak.*
+**/*.backup
+**/*.backup.*
+**/*.broken
+**/*.broken.*
+**/*.disabled.txt
+**/*.disabled.dart
+**/*.disabled
+**/*.log
+**/*.har
+**/*.htm
+**/*.html
+
+# local scratch (if present)
+_dart_backups/
