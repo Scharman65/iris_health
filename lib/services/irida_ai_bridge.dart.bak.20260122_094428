@@ -40,7 +40,7 @@ class IridaAiBridge {
       ),
     );
 
-    final streamed = await req.send().timeout(const Duration(seconds: 90));
+    final streamed = await req.send().timeout(const Duration(seconds: 60));
     final resp = await http.Response.fromStream(streamed);
 
     if (resp.statusCode < 200 || resp.statusCode >= 300) {
