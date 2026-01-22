@@ -51,3 +51,8 @@ ai_inbox/
 
 # Local-only archives
 _local_archives/
+
+# Local backup artifacts (do not commit)
+*.bak.*
+*.bak_*
+*.broken_*
