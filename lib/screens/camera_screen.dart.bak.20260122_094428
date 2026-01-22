@@ -257,7 +257,7 @@ class _CameraScreenState extends State<CameraScreen> {
       ),
     );
 
-    final streamed = await req.send().timeout(const Duration(seconds: 90));
+    final streamed = await req.send().timeout(const Duration(seconds: 60));
     final body = await streamed.stream.bytesToString();
 
     if (streamed.statusCode != 200) {
