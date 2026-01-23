@@ -16,8 +16,29 @@ from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 from reportlab.pdfbase import pdfmetrics
 
+import time
+import os
 BASE_DIR = Path(__file__).parent.resolve()
 INBOX = BASE_DIR / "ai_inbox"
+
+def _audit_save(exam_dir: "Path", payload: dict, kind: str) -> "Path":
+    exam_dir = Path(exam_dir)
+    exam_dir.mkdir(parents=True, exist_ok=True)
+
+    ts_ms = int(time.time() * 1000)
+    pid = os.getpid()
+
+    out = exam_dir / f"{ts_ms}_{pid}_{kind}_audit.json"
+    tmp = exam_dir / f".{out.name}.tmp"
+
+    import json
+    data = json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True)
+
+    tmp.write_text(data, encoding="utf-8")
+    tmp.replace(out)
+    return out
+
+
 INBOX.mkdir(parents=True, exist_ok=True)
 
 MAX_UPLOAD_MB = 12
@@ -56,11 +77,28 @@ def _wrap_lines_for_pdf(text: str, max_width: float, font_name: str, font_size: 
 # --- Метрики качества и карта скорингов ---
 def _basic_quality(img: Image.Image) -> Dict[str, float]:
     g = np.asarray(img.convert("L"), dtype=np.uint8)
-    bright = float(g.mean()/255.0)
+
+    if g.size == 0:
+        return {"brightness": 0.0, "glare": 0.0, "sharp_lapvar": 0.0}
+
+    bright = float(g.mean() / 255.0)
     glare = float((g > 245).mean())
-    gx = np.abs(np.diff(g.astype(np.float32), axis=1)).mean()
-    gy = np.abs(np.diff(g.astype(np.float32), axis=0)).mean()
+
+    h, w = g.shape[:2]
+    if w >= 2:
+        gx = float(np.abs(np.diff(g.astype(np.float32), axis=1)).mean())
+    else:
+        gx = 0.0
+
+    if h >= 2:
+        gy = float(np.abs(np.diff(g.astype(np.float32), axis=0)).mean())
+    else:
+        gy = 0.0
+
     sharp_lapvar = float(gx + gy)
+    if not np.isfinite(sharp_lapvar):
+        sharp_lapvar = 0.0
+
     return {"brightness": bright, "glare": glare, "sharp_lapvar": sharp_lapvar}
 
 def _score_map_and_features(img: Image.Image) -> Dict[str, Any]:
@@ -212,9 +250,7 @@ async def analyze(
     _save_report_pdf(exam_id, result, out_dir, locale=locale)
     result["report_pdf"] = f"/files/{exam_id}/report.pdf"
     result["report_txt"] = f"/files/{exam_id}/report.txt"
-    retur
-import time
-
+    return JSONResponse(result)
 def _quality_scalar(q: Dict[str, float]) -> float:
     b = float(q.get("brightness", 0.0))
     g = float(q.get("glare", 0.0))
@@ -299,7 +335,7 @@ async def analyze_eye(
 
     # --- IRIDA quality gate: reject low-quality images early ---
     try:
-        q_threshold = float(0.60)
+        q_threshold = float(os.environ.get("IRIDA_Q_THRESHOLD", "0.60"))
     except Exception:
         q_threshold = 0.60
 
@@ -307,6 +343,31 @@ async def analyze_eye(
         took_ms = int((time.time() - t0) * 1000)
         # save file anyway for audit/debug
         fp = _save_eye_file(exam_id, side, data)
+        out_dir = INBOX / exam_id
+        out_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            _audit_save(
+                out_dir,
+                {
+                    "event": "analyze_eye",
+                    "status": "rejected",
+                    "reason": "low_quality",
+                    "exam_id": exam_id,
+                    "side": side,
+                    "age": age,
+                    "gender": gender,
+                    "locale": locale,
+                    "task_received": task,
+                    "file_saved": str(fp.name),
+                    "size_bytes": size_bytes,
+                    "quality_scalar": float(q_scalar),
+                    "quality_threshold": float(q_threshold),
+                    "took_ms": int((time.time() - t0) * 1000),
+                },
+                "rejected",
+            )
+        except Exception:
+            pass
         return JSONResponse(
             {
                 "status": "rejected",
@@ -352,6 +413,30 @@ async def analyze_eye(
     out_dir = INBOX / exam_id
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / f"{side}_meta.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    try:
+        _audit_save(
+            out_dir,
+            {
+                "event": "analyze_eye",
+                "status": "ok",
+                "exam_id": exam_id,
+                "side": side,
+                "age": age,
+                "gender": gender,
+                "locale": locale,
+                "task_received": task,
+                "file_saved": str(fp.name),
+                "meta_saved": f"{side}_meta.json",
+                "size_bytes": size_bytes,
+                "quality_scalar": float(q_scalar),
+                "zones_count": int(len(zones) if isinstance(zones, list) else 0),
+                "took_ms": int((time.time() - t0) * 1000),
+            },
+            "ok",
+        )
+    except Exception:
+        pass
 
     took_ms = int((time.time() - t0) * 1000)
 
