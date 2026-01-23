@@ -6,20 +6,6 @@ import 'dart:math' as math;
 import 'package:camera/camera.dart';
 import 'macro_profile.dart';
 
-/// =================================================================
-/// LiveSharpnessAnalyzer v4.5 PRO — Medical Edition
-/// =================================================================
-/// Медицинская версия:
-///   • НЕТ print()
-///   • НЕТ логирования
-///   • НЕТ перегрузки консоли
-///   • Минимальная задержка
-///   • Медицински надёжный ready = резкость + стабильность
-///
-/// Выдаёт:
-///   sharpness, threshold, stable, ready, calibrated
-/// =================================================================
-
 class LiveSharpnessAnalyzer {
   final StreamController<Map<String, dynamic>> _stream =
       StreamController<Map<String, dynamic>>.broadcast();
@@ -27,7 +13,8 @@ class LiveSharpnessAnalyzer {
   Stream<Map<String, dynamic>> get stream => _stream.stream;
 
   bool _busy = false;
-  Uint8List? _prevY;
+
+  Uint8List? _prevSample;
 
   final int warmupFrames;
   int _frameCount = 0;
@@ -39,36 +26,71 @@ class LiveSharpnessAnalyzer {
 
   final MacroProfile profile;
 
+  final int stableWindow;
+  final int stableMinOk;
+  final List<bool> _stableHist = <bool>[];
+
+  // Гистерезис готовности
+  final int readyHoldMs;
+  int _readyUntilEpochMs = 0;
+
   LiveSharpnessAnalyzer({
     required this.profile,
     this.warmupFrames = 20,
     double motionThreshold = 10.0,
-  }) : _motionThreshold = motionThreshold {
-    // Коррекция motionThreshold по размеру пикселя сенсора
+    this.stableWindow = 7,
+    int? stableMinOk,
+    this.readyHoldMs = 550,
+  })  : _motionThreshold = motionThreshold,
+        stableMinOk = stableMinOk ?? 5 {
     _motionThreshold += math.max(0, (1.7 - profile.pixelSizeMicrons) * 8);
   }
 
-  /// =================================================================
-  /// Обработка входящего кадра камеры
-  /// =================================================================
   void handleCameraImage(CameraImage image) {
     if (_busy) return;
     _busy = true;
 
     try {
-      final y = image.planes.first.bytes;
-      final w = image.width;
-      final h = image.height;
+      final fmt = image.format.group;
 
-      final sharp = _estimateSharpness(y, w, h);
-      final stable = _estimateMotion(y);
+      double sharp = 0.0;
+      bool stableRaw = false;
 
-      // --- Калибровка ---
+      if (fmt == ImageFormatGroup.yuv420) {
+        final yPlane = image.planes[0];
+        final bytes = yPlane.bytes;
+        final w = image.width;
+        final h = image.height;
+        final stride = yPlane.bytesPerRow;
+
+        sharp = _estimateSharpnessY(bytes, w, h, stride);
+        stableRaw = _estimateMotionY(bytes, w, h, stride);
+      } else if (fmt == ImageFormatGroup.bgra8888) {
+        final p = image.planes[0];
+        final bytes = p.bytes;
+        final w = image.width;
+        final h = image.height;
+        final stride = p.bytesPerRow;
+
+        sharp = _estimateSharpnessBGRA(bytes, w, h, stride);
+        stableRaw = _estimateMotionBGRA(bytes, w, h, stride);
+      } else {
+        sharp = 0.0;
+        stableRaw = false;
+      }
+
+      _stableHist.add(stableRaw);
+      if (_stableHist.length > stableWindow) {
+        _stableHist.removeAt(0);
+      }
+      final ok = _stableHist.where((v) => v).length;
+      final stable = ok >= stableMinOk;
+
+      // --- калибровка порога резкости ---
       if (!_calibrated) {
         _frameCount++;
 
         final weight = 1 + (profile.aperture - 1.6) * 0.25;
-
         _calibratedThreshold =
             (_calibratedThreshold * (_frameCount - 1) + sharp * weight) /
                 _frameCount;
@@ -76,18 +98,21 @@ class LiveSharpnessAnalyzer {
         if (_frameCount >= warmupFrames) {
           _calibratedThreshold =
               math.min(_calibratedThreshold * 1.18, _calibratedThreshold + 35);
-
           _calibrated = true;
         }
       }
 
-      final threshold = _calibrated
-          ? _calibratedThreshold
-          : (sharp * 1.25);
+      final threshold = _calibrated ? _calibratedThreshold : (sharp * 1.25);
 
-      final ready = sharp >= threshold && stable;
+      final nowMs = DateTime.now().millisecondsSinceEpoch;
+      final readyRaw = sharp >= threshold && stable;
 
-      // Стрим обновления UI
+      if (readyRaw) {
+        _readyUntilEpochMs = nowMs + readyHoldMs;
+      }
+
+      final ready = readyRaw || (nowMs <= _readyUntilEpochMs);
+
       if (!_stream.isClosed) {
         _stream.add({
           "sharpness": sharp,
@@ -95,9 +120,11 @@ class LiveSharpnessAnalyzer {
           "stable": stable,
           "ready": ready,
           "calibrated": _calibrated,
+          // диагностически полезно для UI (без логов)
+          "stable_ok": ok,
+          "stable_n": _stableHist.length,
         });
       }
-
     } catch (_) {
       if (!_stream.isClosed) {
         _stream.add({
@@ -106,6 +133,8 @@ class LiveSharpnessAnalyzer {
           "stable": false,
           "ready": false,
           "calibrated": _calibrated,
+          "stable_ok": 0,
+          "stable_n": 0,
         });
       }
     } finally {
@@ -113,10 +142,7 @@ class LiveSharpnessAnalyzer {
     }
   }
 
-  /// =================================================================
-  /// Быстрый расчёт резкости (дисперсия градиента)
-  /// =================================================================
-  double _estimateSharpness(Uint8List y, int w, int h) {
+  double _estimateSharpnessY(Uint8List y, int w, int h, int stride) {
     double sum = 0, sum2 = 0;
     int cnt = 0;
 
@@ -125,15 +151,16 @@ class LiveSharpnessAnalyzer {
     final wLim = w - step;
 
     for (int yy = step; yy < hLim; yy += step) {
-      final row = yy * w;
+      final row = yy * stride;
+      final rowDown = (yy + 1) * stride;
+
       for (int xx = step; xx < wLim; xx += step) {
         final i = row + xx;
         final c = y[i];
         final r = y[i + 1];
-        final b = y[i + w];
+        final b = y[rowDown + xx];
 
         final v = (r - c).abs() + (b - c).abs();
-
         sum += v;
         sum2 += v * v;
         cnt++;
@@ -146,36 +173,105 @@ class LiveSharpnessAnalyzer {
     return sum2 / cnt - mean * mean;
   }
 
-  /// =================================================================
-  /// Оценка движения руки (межкадровая разница)
-  /// =================================================================
-  bool _estimateMotion(Uint8List yPlane) {
-    if (_prevY == null) {
-      _prevY = Uint8List.fromList(yPlane);
+  bool _estimateMotionY(Uint8List y, int w, int h, int stride) {
+    const sample = 2500;
+    final cur = Uint8List(sample);
+
+    for (int i = 0; i < sample; i++) {
+      final yy = (i * 37) % h;
+      final xx = (i * 73) % w;
+      cur[i] = y[yy * stride + xx];
+    }
+
+    if (_prevSample == null) {
+      _prevSample = cur;
       return false;
     }
 
-    final prev = _prevY!;
-    _prevY = Uint8List.fromList(yPlane);
-
-    final len = math.min(prev.length, yPlane.length);
-    const sample = 5000;
+    final prev = _prevSample!;
+    _prevSample = cur;
 
     int diff = 0;
     for (int i = 0; i < sample; i++) {
-      final idx = (i * 73) % len;
-      if ((prev[idx] - yPlane[idx]).abs() > 14) diff++;
+      if ((prev[i] - cur[i]).abs() > 14) diff++;
     }
 
     final motion = diff / sample * 100.0;
     return motion < _motionThreshold;
   }
 
-  /// =================================================================
-  /// Очистка
-  /// =================================================================
+  double _estimateSharpnessBGRA(Uint8List bgra, int w, int h, int stride) {
+    double sum = 0, sum2 = 0;
+    int cnt = 0;
+
+    const step = 3;
+    final hLim = h - step;
+    final wLim = w - step;
+
+    for (int yy = step; yy < hLim; yy += step) {
+      final row = yy * stride;
+      final rowDown = (yy + 1) * stride;
+
+      for (int xx = step; xx < wLim; xx += step) {
+        final i = row + xx * 4;
+        final j = rowDown + xx * 4;
+
+        final c = _lumaFromBGRA(bgra, i);
+        final r = _lumaFromBGRA(bgra, i + 4);
+        final b = _lumaFromBGRA(bgra, j);
+
+        final v = (r - c).abs() + (b - c).abs();
+        sum += v;
+        sum2 += v * v;
+        cnt++;
+      }
+    }
+
+    if (cnt == 0) return 0.0;
+
+    final mean = sum / cnt;
+    return sum2 / cnt - mean * mean;
+  }
+
+  bool _estimateMotionBGRA(Uint8List bgra, int w, int h, int stride) {
+    const sample = 2500;
+    final cur = Uint8List(sample);
+
+    for (int i = 0; i < sample; i++) {
+      final yy = (i * 37) % h;
+      final xx = (i * 73) % w;
+      final idx = yy * stride + xx * 4;
+      cur[i] = _lumaFromBGRA(bgra, idx);
+    }
+
+    if (_prevSample == null) {
+      _prevSample = cur;
+      return false;
+    }
+
+    final prev = _prevSample!;
+    _prevSample = cur;
+
+    int diff = 0;
+    for (int i = 0; i < sample; i++) {
+      if ((prev[i] - cur[i]).abs() > 14) diff++;
+    }
+
+    final motion = diff / sample * 100.0;
+    return motion < _motionThreshold;
+  }
+
+  int _lumaFromBGRA(Uint8List bgra, int i) {
+    final b = bgra[i];
+    final g = bgra[i + 1];
+    final r = bgra[i + 2];
+    return ((r * 54 + g * 183 + b * 19) >> 8);
+  }
+
   void dispose() {
     if (!_stream.isClosed) _stream.close();
-    _prevY = null;
+    _prevSample = null;
+    _stableHist.clear();
+    _readyUntilEpochMs = 0;
   }
 }
