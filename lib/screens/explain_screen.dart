@@ -117,7 +117,7 @@ class _ExplainCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 10),
-            Text(block.body),
+            Text(block.body.replaceAll('\\n', '\n')),
           ],
         ),
       ),
