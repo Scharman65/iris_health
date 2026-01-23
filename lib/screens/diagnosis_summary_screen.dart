@@ -1,5 +1,8 @@
 import 'dart:io';
+
 import 'package:flutter/material.dart';
+
+import 'explain_screen.dart';
 
 class DiagnosisSummaryScreen extends StatelessWidget {
   const DiagnosisSummaryScreen({
@@ -99,9 +102,37 @@ class DiagnosisSummaryScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('Результаты анализа', style: Theme.of(context).textTheme.titleMedium),
+            Text(
+              'Результаты анализа',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
             const SizedBox(height: 8),
             Text(summary),
+            const SizedBox(height: 12),
+            ElevatedButton(
+              onPressed: () {
+                final locale = Localizations.localeOf(context).toLanguageTag();
+
+                final raw = (aiResult!['raw'] is Map)
+                    ? Map<String, dynamic>.from(aiResult!['raw'] as Map)
+                    : <String, dynamic>{};
+
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => ExplainScreen(
+                      examId: examId,
+                      locale: locale,
+                      analysis: <String, dynamic>{
+                        'exam_id': examId,
+                        'summary': aiResult!['summary'],
+                        'raw': raw,
+                      },
+                    ),
+                  ),
+                );
+              },
+              child: const Text('Пояснение'),
+            ),
             const SizedBox(height: 12),
             if (findings.isNotEmpty) ...[
               const Divider(),
