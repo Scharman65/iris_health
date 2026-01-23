@@ -16,7 +16,7 @@ class AiClient {
 
   final String _defaultBaseUrl = const String.fromEnvironment(
     'AI_BASE_URL',
-    defaultValue: 'http://127.0.0.1:8010',
+    defaultValue: 'http://172.20.10.11:8010',
   );
 
   String _baseUrl = '';
@@ -127,6 +127,13 @@ class AiClient {
     required String gender,
     String locale = 'ru',
   }) async {
+    final b = _normalize(_baseUrl);
+    if (b.contains('127.0.0.1') || b.contains('localhost')) {
+      throw Exception(
+        'AI baseUrl points to localhost. On iPhone use Mac LAN IP, e.g. http://172.20.10.11:8010',
+      );
+    }
+
     final uri = _u('/analyze-eye');
     final req = http.MultipartRequest('POST', uri);
 

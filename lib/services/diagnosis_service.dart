@@ -10,7 +10,7 @@ class DiagnosisService {
 
   Future<bool> health() => _client.health();
 
-  /// Анализ пары (левый + правый) через два запроса /analyze-eye?eye=left|right.
+  /// Анализ пары (левый + правый) через два POST запроса /analyze-eye (eye передаётся как form-field).
   /// Возвращает структуру для UI: summary/findings/raw.
   Future<Map<String, dynamic>> analyzePair({
     required File leftFile,
