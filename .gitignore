@@ -74,3 +74,6 @@ _local_archives/
 
 # local scratch (if present)
 _dart_backups/
+
+# local artifacts
+backups/
