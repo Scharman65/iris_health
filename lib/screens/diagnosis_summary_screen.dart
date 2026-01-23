@@ -1,5 +1,4 @@
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 
 import 'explain_screen.dart';
@@ -58,6 +57,20 @@ class DiagnosisSummaryScreen extends StatelessWidget {
     );
   }
 
+  void _openExplain(BuildContext context, Map<String, dynamic> analysis) {
+    final locale = Localizations.localeOf(context).toLanguageTag();
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ExplainScreen(
+          examId: examId,
+          locale: locale,
+          analysis: analysis,
+        ),
+      ),
+    );
+  }
+
   Widget _photoCard(String path, String title) {
     final exists = File(path).existsSync();
     final image = exists
@@ -86,15 +99,48 @@ class DiagnosisSummaryScreen extends StatelessWidget {
   }
 
   Widget _resultBlock(BuildContext context) {
+    final theme = Theme.of(context);
+
     if (aiResult == null) {
-      return Text(
-        'Результаты анализа недоступны.',
-        style: Theme.of(context).textTheme.bodyMedium,
+      return Card(
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('Результаты анализа', style: theme.textTheme.titleMedium),
+              const SizedBox(height: 8),
+              Text(
+                'Результаты анализа недоступны.',
+                style: theme.textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 12),
+              ElevatedButton(
+                onPressed: () {
+                  _openExplain(
+                    context,
+                    <String, dynamic>{
+                      'exam_id': examId,
+                      'summary': null,
+                      'findings': const <dynamic>[],
+                      'raw': <String, dynamic>{},
+                    },
+                  );
+                },
+                child: const Text('Пояснение'),
+              ),
+            ],
+          ),
+        ),
       );
     }
 
     final summary = aiResult!['summary'] as String? ?? 'Нет сводки.';
     final findings = (aiResult!['findings'] as List?) ?? const [];
+
+    final raw = (aiResult!['raw'] is Map)
+        ? Map<String, dynamic>.from(aiResult!['raw'] as Map)
+        : <String, dynamic>{};
 
     return Card(
       child: Padding(
@@ -102,33 +148,20 @@ class DiagnosisSummaryScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              'Результаты анализа',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
+            Text('Результаты анализа', style: theme.textTheme.titleMedium),
             const SizedBox(height: 8),
             Text(summary),
             const SizedBox(height: 12),
             ElevatedButton(
               onPressed: () {
-                final locale = Localizations.localeOf(context).toLanguageTag();
-
-                final raw = (aiResult!['raw'] is Map)
-                    ? Map<String, dynamic>.from(aiResult!['raw'] as Map)
-                    : <String, dynamic>{};
-
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => ExplainScreen(
-                      examId: examId,
-                      locale: locale,
-                      analysis: <String, dynamic>{
-                        'exam_id': examId,
-                        'summary': aiResult!['summary'],
-                        'raw': raw,
-                      },
-                    ),
-                  ),
+                _openExplain(
+                  context,
+                  <String, dynamic>{
+                    'exam_id': examId,
+                    'summary': summary,
+                    'findings': findings,
+                    'raw': raw,
+                  },
                 );
               },
               child: const Text('Пояснение'),
@@ -159,7 +192,7 @@ class DiagnosisSummaryScreen extends StatelessWidget {
                           padding: const EdgeInsets.only(top: 2),
                           child: Text(
                             note,
-                            style: Theme.of(context).textTheme.bodySmall,
+                            style: theme.textTheme.bodySmall,
                           ),
                         ),
                     ],
