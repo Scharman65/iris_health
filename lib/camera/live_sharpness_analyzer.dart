@@ -1,9 +1,9 @@
-// lib/camera/live_sharpness_analyzer.dart
 import 'dart:async';
-import 'dart:typed_data';
 import 'dart:math' as math;
+import 'dart:typed_data';
 
 import 'package:camera/camera.dart';
+
 import 'macro_profile.dart';
 
 class LiveSharpnessAnalyzer {
@@ -24,13 +24,14 @@ class LiveSharpnessAnalyzer {
 
   double _motionThreshold;
 
+  double _lastMotionPct = 100.0;
+
   final MacroProfile profile;
 
   final int stableWindow;
   final int stableMinOk;
   final List<bool> _stableHist = <bool>[];
 
-  // Гистерезис готовности
   final int readyHoldMs;
   int _readyUntilEpochMs = 0;
 
@@ -77,6 +78,7 @@ class LiveSharpnessAnalyzer {
       } else {
         sharp = 0.0;
         stableRaw = false;
+        _lastMotionPct = 100.0;
       }
 
       _stableHist.add(stableRaw);
@@ -86,7 +88,6 @@ class LiveSharpnessAnalyzer {
       final ok = _stableHist.where((v) => v).length;
       final stable = ok >= stableMinOk;
 
-      // --- калибровка порога резкости ---
       if (!_calibrated) {
         _frameCount++;
 
@@ -97,12 +98,13 @@ class LiveSharpnessAnalyzer {
 
         if (_frameCount >= warmupFrames) {
           _calibratedThreshold =
-              math.min(_calibratedThreshold * 1.18, _calibratedThreshold + 35);
+              math.min(_calibratedThreshold * 1.10, _calibratedThreshold + 25);
           _calibrated = true;
         }
       }
 
-      final threshold = _calibrated ? _calibratedThreshold : (sharp * 1.25);
+      final threshold =
+          _calibrated ? _calibratedThreshold : math.max(12.0, sharp * 1.10);
 
       final nowMs = DateTime.now().millisecondsSinceEpoch;
       final readyRaw = sharp >= threshold && stable;
@@ -120,9 +122,9 @@ class LiveSharpnessAnalyzer {
           "stable": stable,
           "ready": ready,
           "calibrated": _calibrated,
-          // диагностически полезно для UI (без логов)
           "stable_ok": ok,
           "stable_n": _stableHist.length,
+          "motion_pct": _lastMotionPct,
         });
       }
     } catch (_) {
@@ -135,6 +137,7 @@ class LiveSharpnessAnalyzer {
           "calibrated": _calibrated,
           "stable_ok": 0,
           "stable_n": 0,
+          "motion_pct": _lastMotionPct,
         });
       }
     } finally {
@@ -185,6 +188,7 @@ class LiveSharpnessAnalyzer {
 
     if (_prevSample == null) {
       _prevSample = cur;
+      _lastMotionPct = 100.0;
       return false;
     }
 
@@ -197,6 +201,7 @@ class LiveSharpnessAnalyzer {
     }
 
     final motion = diff / sample * 100.0;
+    _lastMotionPct = motion;
     return motion < _motionThreshold;
   }
 
@@ -246,6 +251,7 @@ class LiveSharpnessAnalyzer {
 
     if (_prevSample == null) {
       _prevSample = cur;
+      _lastMotionPct = 100.0;
       return false;
     }
 
@@ -258,6 +264,7 @@ class LiveSharpnessAnalyzer {
     }
 
     final motion = diff / sample * 100.0;
+    _lastMotionPct = motion;
     return motion < _motionThreshold;
   }
 

@@ -53,6 +53,10 @@ class _CameraScreenState extends State<CameraScreen> {
   bool _readyFrame = false;
   bool _calibrated = false;
 
+  int _stableOk = 0;
+  int _stableN = 0;
+  double _motionPct = 100.0;
+
   bool get _bothDone => _leftDone && _rightDone;
 
   bool _focusLocked = false;
@@ -139,6 +143,9 @@ class _CameraScreenState extends State<CameraScreen> {
           _stable = data['stable'] ?? false;
           _readyFrame = data['ready'] ?? false;
           _calibrated = data['calibrated'] ?? false;
+          _stableOk = (data['stable_ok'] as int?) ?? 0;
+          _stableN = (data['stable_n'] as int?) ?? 0;
+          _motionPct = (data['motion_pct'] as num?)?.toDouble() ?? 100.0;
         });
       });
 
@@ -407,6 +414,9 @@ class _CameraScreenState extends State<CameraScreen> {
                             stable: _stable,
                             ready: _readyFrame,
                             calibrated: _calibrated,
+                            stableOk: _stableOk,
+                            stableN: _stableN,
+                            motionPct: _motionPct,
                           ),
                         ),
                         if (_focusTapPos != null)
