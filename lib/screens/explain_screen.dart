@@ -35,7 +35,8 @@ class _ExplainScreenState extends State<ExplainScreen> {
       analysis: widget.analysis,
       clientMeta: <String, dynamic>{
         'app': 'iris_health',
-        'platform': Theme.of(context).platform.name,
+        'platform': 'ios',
+        'runtime': 'flutter',
       },
       requestId: widget.examId,
     );
