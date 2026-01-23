@@ -111,7 +111,18 @@ class ExplainRequest(BaseModel):
 
 @app.post("/explain")
 def explain(req: ExplainRequest):
-    locale = getattr(req, "locale", "en") or "en"
+    def _norm_locale(v: object) -> str:
+        t = (str(v).strip() if v is not None else "")
+        if not t:
+            return "en"
+        t = t.replace("_", "-").lower()
+        if t.startswith("ru"):
+            return "ru"
+        if t.startswith("en"):
+            return "en"
+        return t.split("-", 1)[0] or "en"
+
+    locale = _norm_locale(getattr(req, "locale", None))
     analysis = getattr(req, "analysis", {}) or {}
     request_id = getattr(req, "request_id", None)
 
@@ -119,7 +130,7 @@ def explain(req: ExplainRequest):
     q = _explain_extract_quality(analysis)
 
     quality_ok = True
-    severity = "info"
+    sev_quality = "info"
     if q:
         if "sharpness" in q and q["sharpness"] < 0.55:
             quality_ok = False
@@ -127,38 +138,74 @@ def explain(req: ExplainRequest):
             quality_ok = False
         if "motion" in q and q["motion"] > 0.45:
             quality_ok = False
-        severity = "low" if quality_ok else "medium"
+        sev_quality = "low" if quality_ok else "medium"
 
-    blocks = [
-        {
-            "type": "summary",
-            "title": _explain_pick(locale, "summary_title"),
-            "body": _explain_pick(locale, "summary_body"),
-            "severity": "info",
-        },
-        {
-            "type": "finding",
-            "title": _explain_pick(locale, "findings_title"),
-            "body": _explain_pick(locale, "ok") if quality_ok else _explain_pick(locale, "bad"),
-            "severity": severity,
-        },
-        {
-            "type": "recommendation",
-            "title": _explain_pick(locale, "rec_title"),
-            "body": "\\n".join([
-                f"• {_explain_pick(locale, 'rec1')}",
-                f"• {_explain_pick(locale, 'rec2')}",
-                f"• {_explain_pick(locale, 'rec3')}",
-            ]),
-            "severity": "info",
-        },
-        {
-            "type": "disclaimer",
-            "title": _explain_pick(locale, "disc_title"),
-            "body": _explain_pick(locale, "disc_body"),
-            "severity": "info",
-        },
-    ]
+    summary_from_analysis = None
+    findings_from_analysis = None
+    if isinstance(analysis, dict):
+        if isinstance(analysis.get("summary"), str) and analysis.get("summary").strip():
+            summary_from_analysis = analysis.get("summary").strip()
+        if isinstance(analysis.get("findings"), list):
+            findings_from_analysis = analysis.get("findings")
+
+    blocks = []
+
+    blocks.append({
+        "type": "summary",
+        "title": _explain_pick(locale, "summary_title"),
+        "body": summary_from_analysis if summary_from_analysis else _explain_pick(locale, "summary_body"),
+        "severity": "info",
+    })
+
+    if findings_from_analysis:
+        for f in findings_from_analysis:
+            if not isinstance(f, dict):
+                continue
+            zone = str(f.get("zone") or "").strip() or _explain_pick(locale, "findings_title")
+            note = str(f.get("note") or "").strip()
+            score = f.get("score", None)
+
+            parts = []
+            if score is not None:
+                try:
+                    parts.append(f"score: {float(score):.2f}")
+                except Exception:
+                    parts.append(f"score: {score}")
+            if note:
+                parts.append(note)
+
+            body = "\n".join(parts).strip() or _explain_pick(locale, "ok")
+            blocks.append({
+                "type": "finding",
+                "title": zone,
+                "body": body,
+                "severity": "info",
+            })
+
+    blocks.append({
+        "type": "finding",
+        "title": _explain_pick(locale, "findings_title"),
+        "body": _explain_pick(locale, "ok") if quality_ok else _explain_pick(locale, "bad"),
+        "severity": sev_quality,
+    })
+
+    blocks.append({
+        "type": "recommendation",
+        "title": _explain_pick(locale, "rec_title"),
+        "body": "\\n".join([
+            f"• {_explain_pick(locale, 'rec1')}",
+            f"• {_explain_pick(locale, 'rec2')}",
+            f"• {_explain_pick(locale, 'rec3')}",
+        ]),
+        "severity": "info",
+    })
+
+    blocks.append({
+        "type": "disclaimer",
+        "title": _explain_pick(locale, "disc_title"),
+        "body": _explain_pick(locale, "disc_body"),
+        "severity": "info",
+    })
 
     return {
         "schema_version": "explain.v1",
@@ -173,7 +220,6 @@ def explain(req: ExplainRequest):
         },
     }
 # --- end /explain stub ---
-
 
 app.add_middleware(CORSMiddleware, allow_origins=['*'], allow_methods=['*'], allow_headers=['*'])
 app.mount("/files", StaticFiles(directory=str(INBOX)), name="files")
