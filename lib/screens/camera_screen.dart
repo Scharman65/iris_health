@@ -1,15 +1,11 @@
 // lib/screens/camera_screen.dart
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'package:http_parser/http_parser.dart';
-
-import '../services/ai_client.dart';
+import '../services/diagnosis_service.dart';
 
 import '../camera/camera_orchestrator.dart';
 import '../camera/live_sharpness_analyzer.dart';
@@ -221,55 +217,6 @@ class _CameraScreenState extends State<CameraScreen> {
     }
   }
 
-  Uri _aiEndpoint({String? sideForQuery}) {
-    final raw = AiClient.instance.baseUrl.trim();
-    final base = raw.replaceAll(RegExp(r'/+$'), '');
-    final uri = base.contains('/analyze-eye')
-        ? Uri.parse(base)
-        : Uri.parse('$base/analyze-eye');
-
-    if (sideForQuery == null) return uri;
-    return uri.replace(queryParameters: {
-      ...uri.queryParameters,
-      'eye': sideForQuery,
-    });
-  }
-
-  Future<Map<String, dynamic>> _postOneEye({
-    required String side,
-    required Uint8List bytes,
-  }) async {
-    final req = http.MultipartRequest('POST', _aiEndpoint(sideForQuery: side));
-
-    req.fields['exam_id'] = widget.examId;
-    req.fields['age'] = widget.age.toString();
-    req.fields['gender'] = widget.gender;
-    req.fields['eye'] = side;
-    req.fields['locale'] = 'ru';
-    req.fields['task'] = 'Iridodiagnosis';
-
-    req.files.add(
-      http.MultipartFile.fromBytes(
-        'file',
-        bytes,
-        filename: '${widget.examId}_$side.jpg',
-        contentType: MediaType('image', 'jpeg'),
-      ),
-    );
-
-    final streamed = await req.send().timeout(const Duration(seconds: 90));
-    final body = await streamed.stream.bytesToString();
-
-    if (streamed.statusCode != 200) {
-      throw 'AI error ${streamed.statusCode}: $body';
-    }
-
-    final decoded = jsonDecode(body);
-    if (decoded is Map<String, dynamic>) return decoded;
-    if (decoded is Map) return decoded.cast<String, dynamic>();
-    throw 'AI bad response: $body';
-  }
-
   Future<String> _saveTempJpg(String side, Uint8List bytes) async {
     final dir = Directory.systemTemp;
     final safeId = widget.examId.replaceAll(RegExp(r'[^a-zA-Z0-9_\-]'), '_');
@@ -277,61 +224,6 @@ class _CameraScreenState extends State<CameraScreen> {
     final f = File(path);
     await f.writeAsBytes(bytes, flush: true);
     return path;
-  }
-
-  Map<String, dynamic> _toUiResult({
-    required Map<String, dynamic> left,
-    required Map<String, dynamic> right,
-  }) {
-    double q(dynamic v) {
-      if (v is num) return v.toDouble();
-      return double.tryParse(v?.toString() ?? '') ?? 0.0;
-    }
-
-    int ms(dynamic v) {
-      if (v is num) return v.toInt();
-      return int.tryParse(v?.toString() ?? '') ?? 0;
-    }
-
-    List<Map<String, dynamic>> zones(dynamic v) {
-      if (v is List) {
-        return v
-            .whereType<Map>()
-            .map((m) => m.cast<String, dynamic>())
-            .toList();
-      }
-      return const [];
-    }
-
-    final lq = q(left['quality']);
-    final rq = q(right['quality']);
-    final lt = ms(left['took_ms']);
-    final rt = ms(right['took_ms']);
-
-    final findings = <Map<String, dynamic>>[];
-
-    for (final z in zones(left['zones'])) {
-      findings.add({
-        'zone': 'L: ${z['name'] ?? '—'}',
-        'score': q(z['score']),
-        'note': z['note']?.toString(),
-      });
-    }
-    for (final z in zones(right['zones'])) {
-      findings.add({
-        'zone': 'R: ${z['name'] ?? '—'}',
-        'score': q(z['score']),
-        'note': z['note']?.toString(),
-      });
-    }
-
-    return {
-      'summary':
-          'AI OK. Quality: L=${lq.toStringAsFixed(2)}, R=${rq.toStringAsFixed(2)}. '
-              'Time: L=${lt}ms, R=${rt}ms.',
-      'findings': findings,
-      'raw': {'left': left, 'right': right},
-    };
   }
 
   Future<void> _analyzeAndOpenSummary() async {
@@ -347,10 +239,16 @@ class _CameraScreenState extends State<CameraScreen> {
       final leftPath = await _saveTempJpg('left', leftBytes);
       final rightPath = await _saveTempJpg('right', rightBytes);
 
-      final leftRes = await _postOneEye(side: 'left', bytes: leftBytes);
-      final rightRes = await _postOneEye(side: 'right', bytes: rightBytes);
+      final service = DiagnosisService();
 
-      final ui = _toUiResult(left: leftRes, right: rightRes);
+      final ui = await service.analyzePair(
+        leftFile: File(leftPath),
+        rightFile: File(rightPath),
+        examId: widget.examId,
+        age: widget.age,
+        gender: widget.gender,
+        locale: 'ru',
+      );
 
       if (!mounted) return;
       Navigator.of(context).push(
