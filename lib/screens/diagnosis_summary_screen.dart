@@ -58,7 +58,7 @@ class DiagnosisSummaryScreen extends StatelessWidget {
   }
 
   void _openExplain(BuildContext context, Map<String, dynamic> analysis) {
-    final locale = Localizations.localeOf(context).toLanguageTag();
+    final locale = 'ru';
 
     Navigator.of(context).push(
       MaterialPageRoute(
