@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
+import 'package:hive/hive.dart';
+
 import '../models/diagnosis_model.dart';
 import '../models/gender.dart' as g;
 import '../services/export_import_service.dart';

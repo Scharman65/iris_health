@@ -84,7 +84,7 @@ class DiagnosisService {
       throw Exception('AI invalid JSON: expected object');
     }
 
-    final m = Map<String, dynamic>.from(jsonMap as Map);
+    final m = Map<String, dynamic>.from(jsonMap);
 
     final textSummary = m['text_summary']?.toString();
     final pdfUrl = m['pdf_url']?.toString();

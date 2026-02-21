@@ -9,6 +9,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 import '../models/diagnosis_model.dart';
+import '../models/gender.dart';
 
 class ExportImportService {
   static const int formatVersion = 1;

@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import '../models/diagnosis_model.dart';
+import '../models/gender.dart';
 
 class ResultScreen extends StatelessWidget {
   final String imagePath;
