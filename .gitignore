@@ -77,3 +77,8 @@ _dart_backups/
 
 # local artifacts
 backups/
+
+# IRIDA generated files
+iris_ai_server/pdf/tmp/
+iris_ai_server/storage/reports/
+*.pdf
