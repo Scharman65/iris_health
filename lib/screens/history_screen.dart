@@ -1,11 +1,11 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:hive/hive.dart';
 
 import '../models/diagnosis_model.dart';
 import '../models/gender.dart' as g;
 import '../services/export_import_service.dart';
+import '../services/hive_bootstrap.dart';
 import 'diagnosis_summary_screen.dart';
 
 class HistoryScreen extends StatefulWidget {
@@ -25,10 +25,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 
   Future<Box<Diagnosis>> _openBox() async {
-    if (Hive.isBoxOpen('diagnoses')) {
-      return Hive.box<Diagnosis>('diagnoses');
-    }
-    return Hive.openBox<Diagnosis>('diagnoses');
+    return HiveBootstrap.openBox<Diagnosis>('diagnoses');
   }
 
   Future<void> _doExport() async {
