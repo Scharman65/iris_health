@@ -2,16 +2,14 @@ import 'dart:io';
 import 'package:hive/hive.dart';
 import 'package:path_provider/path_provider.dart';
 
+import 'hive_bootstrap.dart';
+
 class ExamStore {
   static Box? _box;
 
   static Future<Box> _openBox() async {
     if (_box != null) return _box!;
-    final dir = await getApplicationDocumentsDirectory();
-    final hivePath = Directory('${dir.path}/hive').path;
-    await Directory(hivePath).create(recursive: true);
-    Hive.init(hivePath);
-    _box = await Hive.openBox('exams_index');
+    _box = await HiveBootstrap.openBox('exams_index');
     return _box!;
   }
 
@@ -40,7 +38,8 @@ class ExamStore {
       'rightResult': null,
     }));
 
-    final ts = DateTime.now().millisecondsSinceEpoch;
+    final ts = DateTime.now().millisecondsSinceEpoch
+    ;
     final name = '${side == 'left' ? 'left' : 'right'}-$ts.jpg';
     final dst = File('${dir.path}/$name');
     await File(srcPath).copy(dst.path);
