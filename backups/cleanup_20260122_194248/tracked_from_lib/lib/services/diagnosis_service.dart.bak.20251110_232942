@@ -1,0 +1,55 @@
+import 'dart:convert';
+import 'dart:io';
+import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
+
+/// ЕДИНАЯ точка вызова анализа: отправляет ОДНИМ multipart-запросом
+/// два файла 'left' и 'right' на endpoint (из --dart-define или дефолт).
+class DiagnosisService {
+  static const String _endpoint = String.fromEnvironment(
+    'AI_ENDPOINT',
+    defaultValue: 'http://172.20.10.11:8010/analyze',
+  );
+
+  /// Анализ без побочных эффектов: просто отправка и парсинг JSON.
+  static Future<Map<String, dynamic>> analyze({
+    required String leftPath,
+    required String rightPath,
+  }) async {
+    assert(leftPath.isNotEmpty && rightPath.isNotEmpty);
+
+    final uri = Uri.parse(_endpoint); // уже содержит /analyze — не дублировать
+    final req = http.MultipartRequest('POST', uri);
+
+    // лог размеров — чтобы сразу видеть "пустой" файл
+    try {
+      debugPrint('AI call → $uri');
+      debugPrint('FILES → left=${File(leftPath).lengthSync()} bytes, right=${File(rightPath).lengthSync()} bytes');
+    } catch (_) {}
+
+    req.files.add(await http.MultipartFile.fromPath('left', leftPath));
+    req.files.add(await http.MultipartFile.fromPath('right', rightPath));
+
+    final streamed = await req.send();
+    final resp = await http.Response.fromStream(streamed);
+
+    if (resp.statusCode != 200) {
+      debugPrint('AI resp ${resp.statusCode}: ${resp.body}');
+      throw Exception('AI ${resp.statusCode}: ${resp.body}');
+    }
+
+    final data = jsonDecode(resp.body) as Map<String, dynamic>;
+    return data;
+  }
+
+  /// Сохранение + анализ (если где-то в коде ожидался именно этот метод).
+  static Future<Map<String, dynamic>> analyzeAndSave({
+    required String leftPath,
+    required String rightPath,
+    String? examId,
+  }) async {
+    final data = await analyze(leftPath: leftPath, rightPath: rightPath);
+    // если было какое-то локальное сохранение результата — можно добавить здесь
+    return data;
+  }
+}

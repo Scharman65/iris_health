@@ -1,47 +1,9 @@
-# ===== Flutter/Dart/Pub =====
-.dart_tool/
-.flutter-plugins
-.flutter-plugins-dependencies
-.packages
-.pub/
-.pub-cache/
-**/doc/api/
-**/ios/Flutter/.last_build_id
-/build/
-
-# ===== iOS / CocoaPods =====
-ios/.symlinks/
-ios/Flutter/Flutter.framework
-ios/Flutter/Flutter.podspec
-ios/Pods/
-ios/Podfile.lock
-ios/Runner.xcworkspace/
-ios/Runner.xcodeproj/project.xcworkspace/
-ios/Runner.xcodeproj/xcuserdata/
-
-# ===== Other platforms (ephemeral) =====
-macos/Pods/
-linux/flutter/ephemeral/
-windows/flutter/ephemeral/
-
-# ===== Xcode general =====
-DerivedData/
-*.xcuserstate
-*.xcuserdatad
-*.xcworkspace
-*.lock
-
-# ===== IDE =====
-.vscode/
-.idea/
-*.iml
-
-# ===== Misc =====
-.DS_Store
-*.log
+# Miscellaneous
 *.class
+*.log
 *.pyc
 *.swp
+.DS_Store
 .atom/
 .build/
 .buildlog/
@@ -49,44 +11,74 @@ DerivedData/
 .svn/
 .swiftpm/
 migrate_working_dir/
+
+# IntelliJ related
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# The .vscode folder contains launch configuration and tasks you configure in
+# VS Code which you may wish to be included in version control, so this line
+# is commented out by default.
+#.vscode/
+
+# Flutter/Dart/Pub related
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+/build/
+
+# Symbolication related
 app.*.symbols
+
+# Obfuscation related
 app.*.map.json
+
+# Android Studio will place build artifacts here
 /android/app/debug
 /android/app/profile
 /android/app/release
-*.zip
 
-# ===== Project-specific =====
-Runner.ipa
-*.ipa
-crashes/
-*.ips
-
-# FVM (оставляем только конфиги)
+# FVM Version Cache
 .fvm/
-!.fvmrc
-!.fvm/fvm_config.json
-
-# iOS build dir
-ios/build/
-
-# Android build dirs
-android/build/
-android/.gradle/
-android/.cxx/
-.venv/
-__pycache__/
+# local AI inbox (generated)
 ai_inbox/
-resp.json
-L.jpg
-R.jpg
-# server artifacts
-ai_inbox/
-resp.json
-L.jpg
-R.jpg
 
-# backups and tmp
-*.bak*
-iris_ai_server.backup.*
-tmp_report/
+# Local-only archives
+_local_archives/
+
+# Local backup artifacts (do not commit)
+*.bak.*
+*.bak_*
+*.broken_*
+
+# --- repo hygiene: backups / dumps (must never live in lib/ or be tracked) ---
+**/*.bak
+**/*.bak.*
+**/*.backup
+**/*.backup.*
+**/*.broken
+**/*.broken.*
+**/*.disabled.txt
+**/*.disabled.dart
+**/*.disabled
+**/*.log
+**/*.har
+**/*.htm
+**/*.html
+
+# local scratch (if present)
+_dart_backups/
+
+# local artifacts
+backups/
+
+# IRIDA generated files
+iris_ai_server/pdf/tmp/
+iris_ai_server/storage/reports/
+*.pdf

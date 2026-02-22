@@ -1,0 +1,27 @@
+{
+  "status": "ok | rejected",
+  "quality": {
+    "left": 0.0,
+    "right": 0.0,
+    "comment": ""
+  },
+  "left_eye": {
+    "zones": [
+      { "zone": "", "score": 0.0, "interpretation": "" }
+    ],
+    "general_observation": ""
+  },
+  "right_eye": {
+    "zones": [
+      { "zone": "", "score": 0.0, "interpretation": "" }
+    ],
+    "general_observation": ""
+  },
+  "combined_analysis": {
+    "functional_patterns": [],
+    "age_related_notes": "",
+    "sex_related_notes": "",
+    "summary": ""
+  },
+  "disclaimer": "This iridological analysis is not a medical diagnosis and cannot replace professional medical examination."
+}

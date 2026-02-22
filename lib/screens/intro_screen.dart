@@ -1,24 +1,26 @@
 import 'package:flutter/material.dart';
 import 'patient_form_screen.dart';
-import '../models/gender.dart'; // ✅ Добавлен импорт
 
 class IntroScreen extends StatelessWidget {
   const IntroScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return PatientFormScreen(
-      onSubmit: (age, genderStr) {
-        final gender = genderStr == 'Мужчина' ? Gender.male : Gender.female;
-        Navigator.pushReplacementNamed(
-          context,
-          '/camera',
-          arguments: {
-            'age': age,
-            'gender': gender,
-          },
-        );
-      },
+    return Scaffold(
+      appBar: AppBar(title: const Text('Iris Health')),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: FilledButton(
+            onPressed: () {
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (_) => const PatientFormScreen()),
+              );
+            },
+            child: const Text('Начать'),
+          ),
+        ),
+      ),
     );
   }
 }

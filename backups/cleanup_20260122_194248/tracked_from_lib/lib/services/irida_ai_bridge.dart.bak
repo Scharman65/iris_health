@@ -1,0 +1,148 @@
+import 'dart:math';
+import 'package:flutter/foundation.dart';
+import 'irida_api_client.dart';
+
+/// IridaAiBridge — прослойка между Flutter и IRIDA AI сервером.
+/// Здесь мы:
+///   • принимаем возраст, пол, глаз, examId
+///   • собираем payload в формате, который ожидает FastAPI
+///   • вызываем IridaApiClient().analyzeEye(...)
+///
+/// Пока это умная ЗАГЛУШКА:
+///   • зоны ("zones") генерируются по шаблону
+///   • системы: ЖКТ, позвоночник, сердечно-сосудистая и т.п.
+/// В дальнейшем сюда подставим реальные зоны из анализа снимка.
+class IridaAiBridge {
+  final IridaApiClient _client;
+
+  IridaAiBridge({IridaApiClient? client})
+      : _client = client ?? IridaApiClient();
+
+  /// Базовый вызов анализа для конкретного глаза.
+  ///
+  /// [examId]  — ID обследования (тот же, что и в Hive/истории)
+  /// [age]     — возраст пациента (или расчёт по году рождения)
+  /// [gender]  — "male" / "female"
+  /// [eyeSide] — "left" / "right"
+  Future<Map<String, dynamic>> analyzeEyeStub({
+    required String examId,
+    required int age,
+    required String gender,
+    required String eyeSide,
+  }) async {
+    // Нормализуем пол
+    final normalizedGender = _normalizeGender(gender);
+
+    // Немного рандома, чтобы заглушка не была «деревянной»
+    final rand = Random(examId.hashCode ^ age ^ eyeSide.hashCode);
+
+    // Псевдо-оценки по системам в диапазоне [0..1]
+    final giScore = 0.4 + rand.nextDouble() * 0.4;       // ЖКТ
+    final spineScore = 0.3 + rand.nextDouble() * 0.5;    // позвоночник
+    final cardioScore = 0.2 + rand.nextDouble() * 0.5;   // сердечно-сосудистая
+    final neuroScore = 0.2 + rand.nextDouble() * 0.6;    // НС
+    final urogenScore = 0.2 + rand.nextDouble() * 0.6;   // мочевыделительная
+    final endocrineScore = 0.2 + rand.nextDouble() * 0.6; // эндокринная
+
+    // Общая «качество снимка» для заглушки
+    final quality = 0.8 + rand.nextDouble() * 0.15;
+    final suspectedInflammation = giScore > 0.65 || urogenScore > 0.65;
+    final suspectedCongestion = cardioScore > 0.6;
+
+    final payload = <String, dynamic>{
+      "exam_id": examId,
+      "patient": {
+        "age": age,
+        "gender": normalizedGender,
+      },
+      "eye": {
+        "side": eyeSide, // "left" или "right"
+      },
+      // Упрощённый набор «зон» — в будущем заменим реальными зонами
+      "zones": [
+        {
+          "sector_clock": 6.0,
+          "ring_layer": "inner",
+          "organ_label": "stomach",
+          "system": "gastrointestinal",
+          "score": giScore,
+          "pattern": "pigment_spot",
+          "note":
+              "зона желудка — функциональная нагрузка по ЖКТ (по иридологическим картам)."
+        },
+        {
+          "sector_clock": 3.0,
+          "ring_layer": "middle",
+          "organ_label": "spine_lumbar",
+          "system": "spine",
+          "score": spineScore,
+          "pattern": "radial_furrow",
+          "note":
+              "борозды в зоне поясничного отдела позвоночника — возможная нагрузка на опорно-двигательный аппарат."
+        },
+        {
+          "sector_clock": 1.0,
+          "ring_layer": "outer",
+          "organ_label": "heart",
+          "system": "cardiovascular",
+          "score": cardioScore,
+          "pattern": "vascular_crown",
+          "note":
+              "сердечно-сосудистый сектор — признаки функционального напряжения."
+        },
+        {
+          "sector_clock": 10.0,
+          "ring_layer": "inner",
+          "organ_label": "brain_cortex",
+          "system": "nervous",
+          "score": neuroScore,
+          "pattern": "stress_rings",
+          "note":
+              "кольца напряжения в коре головного мозга — признаки хронического стресса/перенапряжения."
+        },
+        {
+          "sector_clock": 7.0,
+          "ring_layer": "middle",
+          "organ_label": "kidney",
+          "system": "urogenital",
+          "score": urogenScore,
+          "pattern": "lacuna",
+          "note":
+              "проекция почек — функциональная нагрузка на мочевыделительную систему."
+        },
+        {
+          "sector_clock": 11.0,
+          "ring_layer": "middle",
+          "organ_label": "thyroid",
+          "system": "endocrine",
+          "score": endocrineScore,
+          "pattern": "discoloration",
+          "note":
+              "зона щитовидной железы — возможный дисбаланс эндокринной регуляции."
+        },
+      ],
+      "global_flags": {
+        "overall_quality": double.parse(quality.toStringAsFixed(2)),
+        "suspected_inflammation": suspectedInflammation,
+        "suspected_congestion": suspectedCongestion,
+      },
+    };
+
+    debugPrint('IRIDA BRIDGE: payload for $eyeSide eye: ${payload.toString()}');
+
+    final response = await _client.analyzeEye(payload);
+
+    debugPrint('IRIDA BRIDGE: response for $eyeSide eye: $response');
+
+    return response;
+  }
+
+  /// Нормализация пола: "male"/"female"
+  String _normalizeGender(String raw) {
+    final g = raw.toLowerCase().trim();
+    if (g.startsWith('m') || g.startsWith('м')) return 'male';
+    if (g.startsWith('f') || g.startsWith('ж')) return 'female';
+    return 'unknown';
+  }
+}
+

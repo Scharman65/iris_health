@@ -1,0 +1,74 @@
+import 'dart:typed_data';
+import 'dart:convert';
+import 'dart:math';
+import 'package:flutter/material.dart';
+import 'package:camera/camera.dart';
+import 'package:http/http.dart' as http;
+import 'package:image/image.dart' as img;
+
+import '../widgets/camera_overlay.dart';
+import 'summary_screen.dart';
+
+const String kAiEndpoint = String.fromEnvironment(
+  'AI_ENDPOINT',
+  defaultValue: 'http://127.0.0.1:8010/analyze',
+);
+
+class CameraScreen extends StatefulWidget {
+  final String examId;
+  final int age;
+  final String gender;
+
+  const CameraScreen({
+    Key? key,
+    required this.examId,
+    required this.age,
+    required this.gender,
+  }) : super(key: key);
+
+  @override
+  State<CameraScreen> createState() => _CameraScreenState();
+}
+
+class _CameraScreenState extends State<CameraScreen> {
+
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+  Future<Map<String, dynamic>?> _callServer(String side, Uint8List bytes) async {
+    try {
+      final req = http.MultipartRequest('POST', Uri.parse(kAiEndpoint));
+
+      req.fields['exam_id'] = widget.examId;
+      req.fields['age'] = widget.age.toString();
+      req.fields['gender'] = widget.gender;
+      req.fields['locale'] = 'ru';
+      req.fields['task'] = 'Иридодиагностика';
+      req.fields['side'] = side;
+
+      req.files.add(
+        http.MultipartFile.fromBytes(
+          'file',
+          bytes,
+          filename: '${widget.examId}_$side.jpg',
+        ),
+      );
+
+      final streamed = await req.send();
+      final resp = await http.Response.fromStream(streamed);
+
+      if (resp.statusCode != 200) {
+        debugPrint('❌ AI error: HTTP ${resp.statusCode}');
+        return null;
+      }
+
+      final decoded = json.decode(resp.body);
+      return decoded is Map<String, dynamic> ? decoded : null;
+    } catch (e) {
+      debugPrint('❌ Ошибка сети: $e');
+      return null;
+    }
+  }

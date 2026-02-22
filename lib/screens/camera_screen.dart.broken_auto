@@ -1,0 +1,224 @@
+import 'dart:convert';
+import 'dart:io';
+import 'package:flutter/material.dart';
+import 'package:camera/camera.dart';
+import 'package:hive/hive.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:iris_health/models/diagnosis_model.dart';
+import 'package:iris_health/screens/diagnosis_summary_screen.dart';
+import 'package:iris_health/services/iris_ai_server.dart';
+import 'package:image/image.dart' as img;
+
+class CameraScreen extends StatefulWidget {
+  final int age;
+  final Gender gender;
+
+  const CameraScreen({
+    super.key,
+    required this.age,
+    required this.gender,
+  });
+
+  @override
+  State<CameraScreen> createState() => _CameraScreenState();
+}
+
+class _CameraScreenState extends State<CameraScreen> {
+  late List<CameraDescription> _cameras;
+  CameraController? _controller;
+  bool _isInitialized = false;
+  int _currentCameraIndex = 1;
+  String _instruction = 'Фото левого глаза';
+  String? _leftEyePath;
+  String? _rightEyePath;
+
+  @override
+  void initState() {
+    super.initState();
+    _initCamera();
+  }
+
+  Future<void> _initCamera() async {
+    _cameras = await availableCameras();
+    if (_cameras.isEmpty) return;
+    if (_currentCameraIndex >= _cameras.length) _currentCameraIndex = 0;
+    await _startCamera(_cameras[_currentCameraIndex]);
+  }
+
+  Future<void> _startCamera(CameraDescription description) async {
+    _controller?.dispose();
+    _controller = CameraController(description, ResolutionPreset.max, enableAudio: false);
+    await _controller!.initialize();
+    setState(() {
+      _isInitialized = true;
+    });
+  }
+
+  Future<void> _switchCamera() async {
+    setState(() => _isInitialized = false);
+    _currentCameraIndex = (_currentCameraIndex + 1) % _cameras.length;
+    await _startCamera(_cameras[_currentCameraIndex]);
+  }
+
+  Future<bool> checkImageQuality(File imageFile) async {
+    final bytes = await imageFile.readAsBytes();
+    final image = img.decodeImage(bytes);
+    if (image == null) return false;
+
+    double contrast = 0;
+    for (int y = 0; y < image.height - 1; y++) {
+      for (int x = 0; x < image.width - 1; x++) {
+        final c1 = image.getPixel(x, y);
+        final c2 = image.getPixel(x + 1, y + 1);
+        final diff = (img.getLuminance(c1) - img.getLuminance(c2)).abs();
+        contrast += diff;
+      }
+    }
+    contrast = contrast / (image.width * image.height);
+
+    double brightnessSum = 0;
+    for (int y = 0; y < image.height; y++) {
+      for (int x = 0; x < image.width; x++) {
+        final c = image.getPixel(x, y);
+        brightnessSum += img.getLuminance(c);
+      }
+    }
+    double avgBrightness = brightnessSum / (image.width * image.height);
+
+    final isSharpEnough = contrast > 10;
+    final isBrightEnough = avgBrightness > 50 && avgBrightness < 230;
+
+    return isSharpEnough && isBrightEnough;
+  }
+
+  Future<void> _takePhoto() async {
+    if (!_controller!.value.isInitialized) return;
+
+    final Directory appDir = await getApplicationDocumentsDirectory();
+    final String filePath =
+        '${appDir.path}/${DateTime.now().millisecondsSinceEpoch}.jpg';
+
+    await _controller!.takePicture().then((XFile file) async {
+      final File newImage = await File(file.path).copy(filePath);
+
+      final isGood = await checkImageQuality(newImage);
+      if (!isGood) {
+        if (!mounted) return;
+        showDialog(
+          context: context,
+          builder: (_) => AlertDialog(
+            title: const Text('Низкое качество фото'),
+            content: const Text(
+              'Изображение получилось размытым или слишком тёмным. Пожалуйста, переснимите.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Ок'),
+              ),
+            ],
+          ),
+        );
+        return;
+      }
+
+      setState(() {
+        if (_leftEyePath == null) {
+          _leftEyePath = newImage.path;
+          _instruction = 'Фото правого глаза';
+        } else if (_rightEyePath == null) {
+          _rightEyePath = newImage.path;
+          _analyzeAndSave();
+        }
+      });
+    });
+  }
+
+  Future<void> _analyzeAndSave() async {
+    final box = await Hive.openBox<Diagnosis>('diagnoses');
+    final id = DateTime.now().millisecondsSinceEpoch;
+
+    final result = await analyzeIrisImages(
+      leftEyePath: _leftEyePath!,
+      rightEyePath: _rightEyePath!,
+    );
+
+    final diagnosis = Diagnosis(
+      id: id,
+      age: widget.age,
+      gender: widget.gender,
+      leftEyeImagePath: _leftEyePath!,
+      rightEyeImagePath: _rightEyePath!,
+      date: DateTime.now(),
+      aiResultJson: result != null ? jsonEncode(result) : null,
+    );
+
+    await box.add(diagnosis);
+
+    if (mounted) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => DiagnosisSummaryScreen(
+            diagnosis: diagnosis,
+            aiResult: result,
+          ),
+        ),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(_instruction),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.cameraswitch),
+            tooltip: 'Поменять камеру',
+            onPressed: _switchCamera,
+          ),
+        ],
+      ),
+      body: _isInitialized && _controller != null
+          ? Stack(
+              alignment: Alignment.center,
+              children: [
+                CameraPreview(_controller!),
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: Center(
+                      child: Container(
+                        width: 220,
+                        height: 220,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: Colors.teal.withOpacity(0.8),
+                            width: 3,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  bottom: 32,
+                  child: ElevatedButton(
+                    onPressed: _takePhoto,
+                    child: const Text('Сделать фото'),
+                  ),
+                ),
+              ],
+            )
+          : const Center(child: CircularProgressIndicator()),
+    );
+  }
+}

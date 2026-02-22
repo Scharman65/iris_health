@@ -1,34 +1,55 @@
 import 'dart:typed_data';
-import 'package:image/image.dart' as img;
 
-/// Средняя яркость кадра [0..1]
-double meanBrightness(Uint8List bytes){
-  final im = img.decodeImage(bytes); if (im==null) return 0.0;
-  final g = img.grayscale(im);
-  final w=g.width, h=g.height;
-  int sum = 0;
-  for (int y=0; y<h; y++){
-    for (int x=0; x<w; x++){
-      final int v = (g.getPixel(x,y).r as num).toInt();
+/// Утилиты качества (быстрые эвристики).
+/// Здесь главное — не "идеальная наука", а стабильная фильтрация мусора.
+class QualityUtils {
+  /// Средняя яркость (0..255) по grayscale байтам.
+  static double meanLuma(Uint8List gray) {
+    if (gray.isEmpty) return 0.0;
+
+    int sum = 0;
+    for (final v in gray) {
       sum += v;
     }
+    return sum / gray.length;
   }
-  return (sum/(w*h))/255.0;
+
+  /// Контраст как стандартное отклонение яркости.
+  static double stdLuma(Uint8List gray) {
+    if (gray.isEmpty) return 0.0;
+
+    final mean = meanLuma(gray);
+    double acc = 0.0;
+    for (final v in gray) {
+      final d = v - mean;
+      acc += d * d;
+    }
+    return (acc / gray.length).sqrt();
+  }
+
+  /// Быстрая оценка "пересвет/недосвет".
+  /// Возвращает true если снимок явно плох по экспозиции.
+  static bool badExposure(
+    Uint8List gray, {
+    double minMean = 35.0,
+    double maxMean = 220.0,
+  }) {
+    final m = meanLuma(gray);
+    return m < minMean || m > maxMean;
+  }
 }
 
-/// Доля «почти белых» пикселей (простая метрика бликов)
-double glareRatio(Uint8List bytes,{int threshold=240}){
-  final im = img.decodeImage(bytes); if (im==null) return 0.0;
-  final w=im.width, h=im.height;
-  int c=0, tot=w*h;
-  for (int y=0; y<h; y++){
-    for (int x=0; x<w; x++){
-      final p = im.getPixel(x,y);
-      final int r = (p.r as num).toInt();
-      final int g = (p.g as num).toInt();
-      final int b = (p.b as num).toInt();
-      if (r>=threshold && g>=threshold && b>=threshold) c++;
+extension on double {
+  double sqrt() => (this <= 0) ? 0.0 : (this).powHalf();
+  double powHalf() {
+    // очень лёгкий sqrt без math import (и без cast-ов)
+    // Newton-Raphson:
+    double x = this;
+    double r = x;
+    for (int i = 0; i < 8; i++) {
+      if (r == 0) return 0.0;
+      r = 0.5 * (r + x / r);
     }
+    return r;
   }
-  return c / (tot.toDouble());
 }

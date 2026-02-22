@@ -1,0 +1,36 @@
+Future<Map<String, dynamic>?> _callServer(String side, Uint8List bytes) async {
+  try {
+    await Future.delayed(const Duration(milliseconds: 300));
+
+    final uri = Uri.parse(kAiEndpoint);
+    final req = http.MultipartRequest('POST', uri)
+      ..fields['exam_id'] = widget.examId
+      ..fields['age'] = widget.age.toString()
+      ..fields['gender'] = widget.gender
+      ..fields['locale'] = 'ru'
+      ..fields['task'] = 'Иридодиагностика'
+      ..fields['side'] = side
+      ..files.add(
+        http.MultipartFile.fromBytes(
+          'file',
+          bytes,
+          filename: '${widget.examId}_$side.jpg',
+        ),
+      );
+
+    final streamed = await req.send();
+    final resp = await http.Response.fromStream(streamed);
+
+    if (resp.statusCode != 200) {
+      debugPrint('❌ AI error: HTTP ${resp.statusCode}');
+      return null;
+    }
+
+    final decoded = json.decode(resp.body);
+    return decoded is Map<String, dynamic> ? decoded : null;
+
+  } catch (e) {
+    debugPrint('❌ Ошибка сети: $e');
+    return null;
+  }
+}

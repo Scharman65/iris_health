@@ -1,0 +1,20 @@
+import 'package:iris_health/services/ai_client.dart';
+
+class DiagnosisService {
+  static Future<Map<String, dynamic>> analyzeAndSave({
+    required String examId,
+    required String leftPath,
+    required String rightPath,
+    required int age,
+    required String gender,
+  }) async {
+    final data = await AiClient.instance.analyzePair(
+      examId: examId,
+      age: age,
+      gender: gender,
+      leftPath: leftPath,
+      rightPath: rightPath,
+    );
+    return data;
+  }
+}

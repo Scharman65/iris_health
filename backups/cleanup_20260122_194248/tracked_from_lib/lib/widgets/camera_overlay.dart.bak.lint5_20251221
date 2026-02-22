@@ -1,0 +1,130 @@
+import 'package:flutter/material.dart';
+
+class CameraOverlay extends StatelessWidget {
+  final double sharpness;
+  final double threshold;
+  final bool stable;
+  final bool ready;
+  final bool calibrated;
+
+  const CameraOverlay({
+    super.key,
+    required this.sharpness,
+    required this.threshold,
+    required this.stable,
+    required this.ready,
+    required this.calibrated,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final ok = calibrated && stable && ready && sharpness >= threshold;
+
+    return IgnorePointer(
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: CustomPaint(
+              painter: _RingPainter(),
+            ),
+          ),
+          Positioned(
+            left: 12,
+            right: 12,
+            top: 12,
+            child: _Hud(
+              sharpness: sharpness,
+              threshold: threshold,
+              stable: stable,
+              ready: ready,
+              calibrated: calibrated,
+              ok: ok,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Hud extends StatelessWidget {
+  final double sharpness;
+  final double threshold;
+  final bool stable;
+  final bool ready;
+  final bool calibrated;
+  final bool ok;
+
+  const _Hud({
+    required this.sharpness,
+    required this.threshold,
+    required this.stable,
+    required this.ready,
+    required this.calibrated,
+    required this.ok,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final line = (String k, String v) => Padding(
+          padding: const EdgeInsets.symmetric(vertical: 2),
+          child: Row(
+            children: [
+              Expanded(child: Text(k, style: theme.textTheme.bodySmall)),
+              Text(v, style: theme.textTheme.bodySmall),
+            ],
+          ),
+        );
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.35),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withOpacity(0.12)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              ok ? 'Готово к снимку' : 'Стабилизируйте кадр',
+              style: theme.textTheme.titleSmall?.copyWith(
+                color: ok ? Colors.greenAccent.withOpacity(0.95) : Colors.white,
+              ),
+            ),
+            const SizedBox(height: 6),
+            line('Резкость', sharpness.toStringAsFixed(1)),
+            line('Порог', threshold.toStringAsFixed(1)),
+            line('Стабильно', stable ? 'да' : 'нет'),
+            line('Кадр ready', ready ? 'да' : 'нет'),
+            line('Калибровка', calibrated ? 'да' : 'нет'),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _RingPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final shortest = size.shortestSide;
+    final center = Offset(size.width / 2, size.height / 2);
+    final r = shortest * 0.33;
+
+    final p = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = (shortest * 0.006).clamp(2.0, 6.0);
+
+    p.color = Colors.white.withOpacity(0.75);
+    canvas.drawCircle(center, r, p);
+
+    p.color = Colors.white.withOpacity(0.35);
+    canvas.drawCircle(center, r * 0.72, p);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}

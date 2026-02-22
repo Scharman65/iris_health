@@ -64,7 +64,6 @@ class _IrisZonesPainter extends CustomPainter {
     final R = math.min(size.width, size.height) * irisRadiusFactor;
 
     // Фон за пределами круга чуть затемним (необязательно, но красиво)
-    final dim = Paint()..color = const Color(0x22000000);
     canvas.save();
     final clip = Path()..addOval(Rect.fromCircle(center: center, radius: R));
     canvas.clipPath(clip);
@@ -108,7 +107,6 @@ class _IrisZonesPainter extends CustomPainter {
       path.addArc(Rect.fromCircle(center: center, radius: r1), a0, a1 - a0);
       // соединение к внутреннему радиусу
       final innerTo = Offset(center.dx + r0 * math.cos(a1), center.dy + r0 * math.sin(a1));
-      final innerFrom = Offset(center.dx + r0 * math.cos(a0), center.dy + r0 * math.sin(a0));
       path.lineTo(innerTo.dx, innerTo.dy);
       // внутренняя дуга в обратную сторону
       path.addArc(Rect.fromCircle(center: center, radius: r0), a1, -(a1 - a0));

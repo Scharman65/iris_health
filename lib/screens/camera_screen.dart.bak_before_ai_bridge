@@ -1,0 +1,357 @@
+// lib/screens/camera_screen.dart
+import 'dart:typed_data';
+import 'dart:convert';
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:camera/camera.dart';
+import 'package:http/http.dart' as http;
+
+import '../camera/macro_profile.dart';
+import '../camera/macro_profile_storage.dart';
+import '../camera/camera_orchestrator.dart';
+import '../camera/live_sharpness_analyzer.dart';
+import '../widgets/camera_overlay.dart';
+import 'summary_screen.dart';
+
+const String kAiEndpoint = String.fromEnvironment(
+  'AI_ENDPOINT',
+  defaultValue: 'http://172.20.10.11:8000/analyze-eye',
+);
+
+class CameraScreen extends StatefulWidget {
+  final String examId;
+  final int age;
+  final String gender;
+
+  const CameraScreen({
+    Key? key,
+    required this.examId,
+    required this.age,
+    required this.gender,
+  }) : super(key: key);
+
+  @override
+  State<CameraScreen> createState() => _CameraScreenState();
+}
+
+class _CameraScreenState extends State<CameraScreen> {
+  CameraOrchestrator? _orchestrator;
+  CameraController? _controller;
+
+  Uint8List? _left;
+  Uint8List? _right;
+
+  bool _leftDone = false;
+  bool _rightDone = false;
+
+  bool _initializing = true;
+  bool _capturing = false;
+
+  LiveSharpnessAnalyzer? _sharp;
+
+  double _liveSharpness = 0.0;
+  double _adaptiveThreshold = 0.0;
+  bool _stable = false;
+  bool _readyFrame = false;
+  bool _calibrated = false;
+
+  bool get ready => _leftDone && _rightDone;
+
+  @override
+  void initState() {
+    super.initState();
+    _initPipeline();
+  }
+
+  @override
+  void dispose() {
+    _controller?.dispose();
+    _sharp?.dispose();
+    super.dispose();
+  }
+
+  // ------------------------------------------------------------
+  // ИНИЦИАЛИЗАЦИЯ
+  // ------------------------------------------------------------
+  Future<void> _initPipeline() async {
+    try {
+      final cams = await availableCameras();
+
+      // Выбираем лучшую заднюю камеру
+      CameraDescription selectedCamera = cams.firstWhere(
+        (c) => c.lensDirection == CameraLensDirection.back,
+        orElse: () => cams.first,
+      );
+
+      // Предпочитаем телефото, если есть
+      final telephoto = cams.where(
+        (c) => c.lensDirection == CameraLensDirection.back &&
+               c.name.toLowerCase().contains("tele"),
+      );
+      if (telephoto.isNotEmpty) {
+        selectedCamera = telephoto.first;
+      }
+
+      // Временный контроллер — чтобы определить MacroProfile
+      final tmp = CameraController(
+        selectedCamera,
+        ResolutionPreset.max,
+        enableAudio: false,
+        imageFormatGroup: ImageFormatGroup.yuv420,
+      );
+      await tmp.initialize();
+
+      // Получаем или создаём профиль
+      final storage = MacroProfileStorage();
+      final profile = await storage.loadOrCreateProfile(tmp);
+
+      await tmp.dispose();
+
+      // Создаём анализатор на основе профиля
+      _sharp = LiveSharpnessAnalyzer(profile: profile);
+
+      // Инициализация оркестратора
+      final orch = CameraOrchestrator(profile);
+      await orch.initialize();
+
+      final controller = orch.controller;
+      if (controller == null) throw "Camera not initialized";
+
+      try {
+        await controller.setFocusMode(FocusMode.auto);
+      } catch (_) {}
+
+      await _startStream(controller);
+
+      // Подписка на анализатор резкости
+      _sharp!.stream.listen((data) {
+        if (!mounted) return;
+
+        setState(() {
+          _liveSharpness = data["sharpness"] ?? 0.0;
+          _adaptiveThreshold = data["threshold"] ?? 0.0;
+          _stable = data["stable"] ?? false;
+          _readyFrame = data["ready"] ?? false;
+          _calibrated = data["calibrated"] ?? false;
+        });
+      });
+
+      if (!mounted) return;
+      setState(() {
+        _orchestrator = orch;
+        _controller = controller;
+        _initializing = false;
+      });
+
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _initializing = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Ошибка камеры: $e")),
+      );
+    }
+  }
+
+  // ------------------------------------------------------------
+  Future<void> _startStream(CameraController controller) async {
+    if (controller.value.isStreamingImages) {
+      try {
+        await controller.stopImageStream();
+      } catch (_) {}
+      await Future.delayed(const Duration(milliseconds: 120));
+    }
+
+    await controller.startImageStream((CameraImage frame) {
+      _sharp?.handleCameraImage(frame);
+    });
+  }
+
+  // ------------------------------------------------------------
+  // СЪЁМКА
+  // ------------------------------------------------------------
+  Future<void> _capture(String side) async {
+    if (_controller == null || _orchestrator == null || _capturing) return;
+
+    setState(() => _capturing = true);
+
+    try {
+      if (!_readyFrame || !_stable || !_calibrated) {
+        throw "Кадр ещё не стабилен. Резкость: ${_liveSharpness.toStringAsFixed(1)}, "
+              "порог: ${_adaptiveThreshold.toStringAsFixed(1)}";
+      }
+
+      try {
+        if (_controller!.value.isStreamingImages) {
+          await _controller!.stopImageStream();
+        }
+      } catch (_) {}
+      await Future.delayed(const Duration(milliseconds: 120));
+
+      final best = await _orchestrator!.captureBestIris();
+
+      setState(() {
+        if (side == "left") {
+          _left = best;
+          _leftDone = true;
+        } else {
+          _right = best;
+          _rightDone = true;
+        }
+      });
+
+      await _startStream(_controller!);
+
+    } catch (e) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text("$e")));
+    } finally {
+      if (mounted) setState(() => _capturing = false);
+    }
+  }
+
+  // ------------------------------------------------------------
+  // ОТПРАВКА НА AI
+  // ------------------------------------------------------------
+  Future<void> _sendForAnalysis() async {
+    if (!ready) return;
+
+    try {
+      final req = http.MultipartRequest("POST", Uri.parse(kAiEndpoint));
+
+      req.fields["exam_id"] = widget.examId;
+      req.fields["age"] = widget.age.toString();
+      req.fields["gender"] = widget.gender;
+      req.fields["locale"] = "ru";
+      req.fields["task"] = "Iridodiagnosis";
+
+      req.files.add(http.MultipartFile.fromBytes(
+        "file_left",
+        _left!,
+        filename: "${widget.examId}_left.jpg",
+      ));
+
+      req.files.add(http.MultipartFile.fromBytes(
+        "file_right",
+        _right!,
+        filename: "${widget.examId}_right.jpg",
+      ));
+
+      final streamed = await req.send();
+      final resp = await http.Response.fromStream(streamed);
+
+      if (resp.statusCode != 200) {
+        throw "Server error: ${resp.statusCode}";
+      }
+
+      final decoded = json.decode(resp.body);
+
+      if (!mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => SummaryScreen(
+            examId: widget.examId,
+            left: decoded["left"],
+            right: decoded["right"],
+          ),
+        ),
+      );
+
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Ошибка сервера: $e")),
+      );
+    }
+  }
+
+  // ------------------------------------------------------------
+  // UI
+  // ------------------------------------------------------------
+  @override
+  Widget build(BuildContext context) {
+    if (_initializing) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_controller == null || !_controller!.value.isInitialized) {
+      return const Scaffold(
+        body: Center(child: Text("Камера не инициализирована")),
+      );
+    }
+
+    final ok = _readyFrame && _calibrated &&
+        _liveSharpness >= _adaptiveThreshold;
+
+    return Scaffold(
+      appBar: AppBar(title: Text("Съёмка (${widget.examId})")),
+      body: Column(
+        children: [
+          Expanded(
+            child: Stack(
+              children: [
+                CameraPreview(_controller!),
+                const IrisOverlay(),
+
+                // Диагностическая панель
+                Positioned(
+                  bottom: 12,
+                  left: 12,
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: ok
+                          ? Colors.green.withOpacity(0.75)
+                          : Colors.red.withOpacity(0.75),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      "Резкость: ${_liveSharpness.toStringAsFixed(1)} / ${_adaptiveThreshold.toStringAsFixed(1)}\n"
+                      "Калибровка: ${_calibrated ? "да" : "нет"}\n"
+                      "Стабильно: ${_stable ? "да" : "нет"}",
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              ElevatedButton(
+                onPressed:
+                    _capturing ? null : () => _capture("left"),
+                child: Text(_leftDone ? "Левый ✓" : "Снять левый"),
+              ),
+              ElevatedButton(
+                onPressed:
+                    _capturing ? null : () => _capture("right"),
+                child: Text(_rightDone ? "Правый ✓" : "Снять правый"),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 16),
+
+          ElevatedButton(
+            onPressed: ready && !_capturing ? _sendForAnalysis : null,
+            child: const Text("Отправить на анализ"),
+          ),
+
+          const SizedBox(height: 20),
+        ],
+      ),
+    );
+  }
+}

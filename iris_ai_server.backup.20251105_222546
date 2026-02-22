@@ -1,0 +1,212 @@
+from fastapi import FastAPI, File, Form, UploadFile
+from fastapi.responses import JSONResponse
+from typing import Dict, Any
+from pathlib import Path
+from PIL import Image
+import numpy as np, cv2, io, json
+
+from ai.iris_geom import summarize_eye
+from ai.atlas_map import zone_name
+
+app = FastAPI()
+
+def _synthesize_text(result: dict) -> str:
+    age = result.get("age")
+    gender = result.get("gender")
+    def qline(side):
+        q = result.get(side,{}).get("quality",{})
+        flags = result.get(side,{}).get("quality_flags",{}).get("flags",[])
+        issues = ", ".join(f.get("msg","") for f in flags) if flags else "без критичных замечаний"
+        br = q.get("brightness") or 0.0
+        gl = q.get("glare") or 0.0
+        sh = q.get("sharp_lapvar") or 0.0
+        return f"{'Левый' if side=='left' else 'Правый'}: освещённость={br:.3f}, блики={gl:.3f}, резкость={sh:.0f}, {issues}"
+    def zones(side):
+        z = result.get(side,{}).get("top_zones",[])[:5]
+        parts=[]
+        for i,x in enumerate(z,1):
+            try:
+                parts.append(f"{i}) {x.get('label')} (score={float(x.get('score',0)):.2f})")
+            except Exception:
+                parts.append(f"{i}) {x.get('label')}")
+        return "; ".join(parts) if parts else "нет выраженных зон по метрике"
+    parts=[]
+    parts.append(f"Пациент: {('мужчина' if (str(gender).lower().startswith('m')) else 'женщина')}, {age} лет.")
+    parts.append("Качество снимков: " + qline('left') + "; " + qline('right') + ".")
+    parts.append("Топ-зоны левого глаза: " + zones('left') + ".")
+    parts.append("Топ-зоны правого глаза: " + zones('right') + ".")
+    sym = result.get('symmetry',{})
+    if sym:
+        lt = float(sym.get('left_total',0)); rt = float(sym.get('right_total',0)); dt = float(sym.get('delta',0))
+        parts.append(f"Симметрия интегральных показателей: L={lt:.3f}, R={rt:.3f}, Δ={dt:.3f}.")
+    parts.append("Комментарий: авто-черновик по эвристикам (v1). Это не медицинский диагноз.")
+    return "\n".join(parts)
+
+
+from pathlib import Path
+from PIL import Image, ImageDraw
+import json
+
+def _color_scale(v):
+    v=max(0.0,min(1.0,float(v)))
+    r=int(255*v)
+    g=int(255*(1.0-abs(v-0.5)*2))
+    b=int(255*(1.0-v))
+    return (r,g,b)
+
+def _render_heatmap_png(score_map, out_path, cell=24, pad=2):
+    H=len(score_map)
+    W=len(score_map[0]) if H>0 else 0
+    im=Image.new("RGB",(W*cell,H*cell),(0,0,0))
+    dr=ImageDraw.Draw(im)
+    for y in range(H):
+        for x in range(W):
+            v=score_map[y][x]
+            c=_color_scale(v)
+            x0=x*cell+pad; y0=y*cell+pad
+            x1=(x+1)*cell-pad; y1=(y+1)*cell-pad
+            dr.rectangle([x0,y0,x1,y1],fill=c)
+    im.save(out_path)
+
+
+def _save_report_txt(exam_id: str, result: dict, root: Path):
+    txt=_synthesize_text(result)
+    (root/"report.txt").write_text(txt, encoding="utf-8")
+    return str(root)
+def _save_report(exam_id, result):
+    root=Path("./ai_inbox")/exam_id
+    root.mkdir(parents=True,exist_ok=True)
+    (root/"report.json").write_text(json.dumps(result,ensure_ascii=False,indent=2),encoding="utf-8")
+    L=result.get("left",{}).get("score_map")
+    R=result.get("right",{}).get("score_map")
+    if L: _render_heatmap_png(L, root/"heatmap_left.png")
+    if R: _render_heatmap_png(R, root/"heatmap_right.png")
+    return str(root)
+
+INBOX = Path("./ai_inbox"); INBOX.mkdir(exist_ok=True, parents=True)
+
+def _read_bgr(file_bytes: bytes):
+    arr = np.frombuffer(file_bytes, np.uint8)
+    img = cv2.imdecode(arr, cv2.IMREAD_COLOR)
+    if img is None:
+        pil = Image.open(io.BytesIO(file_bytes)).convert("RGB")
+        img = cv2.cvtColor(np.array(pil), cv2.COLOR_RGB2BGR)
+    return img
+
+def _enrich(features):
+    out = []
+    for f in features:
+        out.append({"label": zone_name(f["angle_sector"], f["ring"]), **f})
+    return out
+
+def _top_flags(feats, k=5):
+    # ранжируем по std + edge_density + lapvar (простая эвристика)
+    score = [ (i, (f["std"]*1.0 + f["edge_density"]*1.5 + (f["lapvar"]/10000.0))) for i,f in enumerate(feats) ]
+    score.sort(key=lambda x: x[1], reverse=True)
+    tops = []
+    for i,s in score[:k]:
+        f = feats[i]
+        tops.append({
+            "label": f["label"],
+            "score": round(s, 4),
+            "mean": round(f["mean"],4),
+            "std": round(f["std"],4),
+            "edge_density": round(f["edge_density"],4),
+            "lapvar": round(f["lapvar"],2)
+        })
+    return tops
+
+def _flags_quality(q: Dict[str, Any]) -> Dict[str, Any]:
+    flags = []
+    if q["brightness"] < 0.12:
+        flags.append({"code":"too_dark","msg":"Недостаточная освещённость"})
+    if q["glare"] > 0.04:
+        flags.append({"code":"glare","msg":"Выражённые блики"})
+    if q["sharp_lapvar"] < 1200:
+        flags.append({"code":"blurry","msg":"Недостаточная резкость"})
+    return {"ok": len(flags)==0, "flags": flags}
+
+def _symmetry(left_scores: list, right_scores: list):
+    # сравниваем покольцево и посекторно: абсолютная дельта
+    L, R = np.array(left_scores), np.array(right_scores)
+    delta = np.abs(L - R)  # [24 x 5]
+    # собираем топ-5 асимметрий
+    out = []
+    for ia in range(delta.shape[0]):
+        for ir in range(delta.shape[1]):
+            out.append((ia,ir,float(delta[ia,ir])))
+    out.sort(key=lambda x: x[2], reverse=True)
+    tops = [
+        {"label": zone_name(ia,ir), "delta": round(sc,4), "sector": ia, "ring": ir}
+        for (ia,ir,sc) in out[:5]
+    ]
+    # средняя и медианная асимметрия
+    return {
+        "mean_delta": float(delta.mean()),
+        "median_delta": float(np.median(delta)),
+        "top_diffs": tops
+    }
+
+@app.post("/analyze")
+async def analyze(
+    exam_id: str = Form(...),
+    age: int = Form(...),
+    gender: str = Form(...),   # "male"/"female"
+    task: str = Form(...),
+    left: UploadFile = File(...),
+    right: UploadFile = File(...),
+):
+    # читаем
+    l_bytes = await left.read()
+    r_bytes = await right.read()
+    imgL = _read_bgr(l_bytes)
+    imgR = _read_bgr(r_bytes)
+
+    # анализ v1
+    L = summarize_eye(imgL)
+    R = summarize_eye(imgR)
+    Lf = _enrich(L["features"])
+    Rf = _enrich(R["features"])
+
+    # симметрии
+    sym = _symmetry(L["score_map"], R["score_map"])
+
+    # складываем в INBOX
+    root = INBOX / exam_id
+    root.mkdir(exist_ok=True, parents=True)
+    (root/"meta.json").write_text(json.dumps({
+        "exam_id": exam_id, "age": age, "gender": gender, "task": task
+    }, ensure_ascii=False, indent=2), encoding="utf-8")
+    cv2.imencode(".jpg", imgL)[1].tofile(str(root/"left.jpg"))
+    cv2.imencode(".jpg", imgR)[1].tofile(str(root/"right.jpg"))
+
+    result: Dict[str, Any] = {
+        "exam_id": exam_id,
+        "age": age,
+        "gender": gender,
+        "task_received": task,
+        "left": {
+            "quality": L["quality"],
+            "quality_flags": _flags_quality(L["quality"]),
+            "top_zones": _top_flags(Lf, 5),
+            "score_map": L["score_map"],   # 24x5
+        },
+        "right": {
+            "quality": R["quality"],
+            "quality_flags": _flags_quality(R["quality"]),
+            "top_zones": _top_flags(Rf, 5),
+            "score_map": R["score_map"],   # 24x5
+        },
+        "symmetry": sym,
+        "summary": "v1: heatmap+symmetry (эвристика). Not a medical diagnosis."
+    }
+    _save_report(exam_id, result)
+    txt=_synthesize_text(result)
+    result["text_summary"]=txt
+    _save_report(exam_id, result)
+    _save_report_txt(exam_id, result, INBOX/exam_id)
+    return JSONResponse(result)
+
+@app.get("/")
+def root():
+    return {"status": "ok"}

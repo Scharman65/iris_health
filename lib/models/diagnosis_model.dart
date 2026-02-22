@@ -1,14 +1,7 @@
 import 'package:hive/hive.dart';
+import 'gender.dart';
 
 part 'diagnosis_model.g.dart';
-
-@HiveType(typeId: 0)
-enum Gender {
-  @HiveField(0)
-  male,
-  @HiveField(1)
-  female,
-}
 
 @HiveType(typeId: 1)
 class Diagnosis extends HiveObject {

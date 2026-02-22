@@ -1,0 +1,329 @@
+
+try:
+    import arabic_reshaper
+    from bidi.algorithm import get_display as _bidi_get_display
+    _HAS_RTL = True
+except Exception:
+    _HAS_RTL = False
+\nimport unicodedata\nimport os\nfrom fastapi.staticfiles import StaticFiles
+from fastapi import Request
+from fastapi import FastAPI, File, Form, UploadFile
+from fastapi.responses import JSONResponse
+from pathlib import Path
+BASE_DIR = Path(__file__).parent.resolve()
+INBOX = BASE_DIR / 'ai_inbox'
+INBOX.mkdir(exist_ok=True)
+from typing import Dict, Any, List
+from PIL import Image
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfgen import canvas
+from reportlab.lib.utils import ImageReader
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.lib.colors import blue, black
+
+
+
+def _pick_font(locale: str | None) -> str:
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.ttfonts import TTFont
+    try:
+        pdfmetrics.registerFont(TTFont("NotoSans", "fonts/NotoSans-Regular.ttf"))
+    except Exception:
+        pass
+    try:
+        pdfmetrics.registerFont(TTFont("DejaVuSans", "fonts/DejaVuSans.ttf"))
+    except Exception:
+        pass
+    if locale:
+        l = locale.lower()
+        if l.startswith("ru"):
+            return "NotoSans"
+        if l.startswith(("ar", "he")):
+            return "NotoSans"
+    return "NotoSans"
+
+
+def _ensure_fonts():
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.ttfonts import TTFont
+    try:
+        pdfmetrics.registerFont(TTFont("NotoSans", "fonts/NotoSans-Regular.ttf"))
+    except Exception:
+        pass
+    try:
+        pdfmetrics.registerFont(TTFont("DejaVuSans", "fonts/DejaVuSans.ttf"))
+    except Exception:
+        pass
+
+
+def _save_report_pdf(exam_id: str, result: dict, root: Path) -> str:
+    pdf_path = root / "report.pdf"
+    c = canvas.Canvas(str(pdf_path), pagesize=A4)
+    w, h = A4
+    y = h - 40
+    title = f"Iris Auto-Report • ID={result.get('exam_id')} • Age={result.get('age')} • Gender={result.get('gender')}"
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(40, y, title); y -= 24
+    txt = result.get("text_summary") or "No text summary"
+    c.setFont("Helvetica", 10)
+    for line in txt.splitlines():
+        if y < 160:
+            c.showPage(); y = h - 40; c.setFont("Helvetica", 10)
+        c.drawString(40, y, line[:120]); y -= 14
+    c.showPage()
+    c.setFont("Helvetica-Bold", 12); c.drawString(40, h-40, "Heatmaps")
+    c.setFont("Helvetica", 10); c.drawString(40, h-60, "Left"); c.drawString(320, h-60, "Right")
+    left_png  = root / "heatmap_left.png"
+    right_png = root / "heatmap_right.png"
+    def draw_img(path, x, y, maxw=240, maxh=240):
+        try:
+            img = ImageReader(str(path))
+            c.drawImage(img, x, y, width=maxw, height=maxh, preserveAspectRatio=True, anchor='sw')
+        except Exception:
+            pass
+    draw_img(left_png, 40,  h-320)
+    draw_img(right_png, 320, h-320)
+    c.showPage()
+    c.save()
+    return str(pdf_path)
+
+import numpy as np
+import json
+
+app = FastAPI()
+from fastapi.staticfiles import StaticFiles
+try:
+    app.mount("/files", StaticFiles(directory=str(INBOX)), name="files")
+except Exception:
+    pass
+INBOX = Path("./ai_inbox"); INBOX.mkdir(parents=True, exist_ok=True)
+
+def _basic_quality(img: Image.Image) -> Dict[str, float]:
+    g = np.asarray(img.convert("L"), dtype=np.uint8)
+    bright = float(g.mean() / 255.0)
+    glare = float((g > 245).mean())
+    gx = np.abs(np.diff(g.astype(np.float32), axis=1)).mean()
+    gy = np.abs(np.diff(g.astype(np.float32), axis=0)).mean()
+    sharp_lapvar = float(gx + gy)
+    return {"brightness": bright, "glare": glare, "sharp_lapvar": sharp_lapvar}
+
+def _find_radii(img: Image.Image) -> Dict[str, int]:
+    w, h = img.size; cx, cy = w // 2, h // 2
+    g = np.asarray(img.convert("L"), dtype=np.uint8)
+    prof = g[cy, :]
+    thr = int(np.percentile(prof, 20))
+    left = np.argmax(prof[:cx] > thr)
+    right = w - 1 - np.argmax(prof[::-1] > thr)
+    r_iris = max(cx - left, right - cx)
+    r_pupil = max(10, int(0.35 * r_iris))
+    return {"r_pupil": int(r_pupil), "r_iris": int(r_iris)}
+
+def _flags_quality(q: Dict[str, float]) -> Dict[str, Any]:
+    flags = []; ok = True
+    if q.get("brightness", 0) < 0.12: ok = False; flags.append({"code":"too_dark","msg":"Недостаточная освещённость"})
+    if q.get("glare", 0) > 0.12: ok = False; flags.append({"code":"glare","msg":"Сильные блики"})
+    if q.get("sharp_lapvar", 0) < 1500: ok = False; flags.append({"code":"blurry","msg":"Низкая резкость"})
+    return {"ok": ok, "flags": flags}
+
+def _sector_label(angle_sector: int, ring: int, n_ang: int = 24, n_rad: int = 5) -> str:
+    organs = {
+        0:"Голова/лицо",1:"Голова/лицо",2:"Шея/гортань",3:"Щитовидная",
+        4:"Плечевой пояс",5:"Грудной отдел",6:"Сердце/перикард",7:"Желудок",
+        8:"Тонкая кишка",9:"Тонкая кишка",10:"Толстая(восх.)",11:"Толстая(попер.)",
+        12:"Толстая(нисх.)",13:"Почки/надпоч.",14:"Мочевой тракт",15:"Половые органы",
+        16:"Поясница/крестец",17:"Суставы НК",18:"Селезёнка/лимфа",19:"ЖКТ(общ)",
+        20:"ЖКТ(общ)",21:"Бронхи",22:"Глотка/миндалины",23:"Голова/лицо",
+    }
+    layers = {0:"околозрачк. зона",1:"вн. радужка",2:"ср. радужка",3:"нар. радужка",4:"краевой пояс"}
+    return f"{organs.get(angle_sector % n_ang,'Зона?')} — {layers.get(ring % n_rad,f'слой {ring}')}"
+
+def _normalize01(x: np.ndarray) -> np.ndarray:
+    mn, mx = x.min(), x.max()
+    if mx - mn < 1e-9: return np.zeros_like(x)
+    return (x - mn) / (mx - mn)
+
+def _score_map_and_features(img: Image.Image) -> Dict[str, Any]:
+    g = np.asarray(img.convert("L"), dtype=np.uint8)
+    h, w = g.shape; cx, cy = w // 2, h // 2
+    rinfo = _find_radii(img); r_in = rinfo["r_pupil"]; r_out = rinfo["r_iris"]
+    n_ang, n_rad = 24, 5
+    feats: List[Dict[str, Any]] = []
+    ring_edges = np.linspace(r_in, r_out, n_rad + 1, dtype=int)
+    ang_edges = np.linspace(0, 2*np.pi, n_ang + 1)
+    yy, xx = np.indices(g.shape)
+    rr = np.sqrt((xx - cx)**2 + (yy - cy)**2)
+    aa = (np.arctan2(yy - cy, xx - cx) + 2*np.pi) % (2*np.pi)
+    mask_iris = (rr >= r_in) & (rr <= r_out)
+    strip = g.copy(); strip[~mask_iris] = 0
+    for ia in range(n_ang):
+        a0, a1 = ang_edges[ia], ang_edges[ia+1]; am = (aa >= a0) & (aa < a1)
+        for ir in range(n_rad):
+            r0, r1 = ring_edges[ir], ring_edges[ir+1]; rm = (rr >= r0) & (rr < r1)
+            sel = strip[am & rm]
+            if sel.size == 0:
+                mean = std = edged = lapv = 0.0
+            else:
+                mean = float(sel.mean()/255.0)
+                std  = float(sel.std()/255.0)
+                edged = float((sel > np.median(sel)).mean())
+                gx = np.abs(np.diff(sel.astype(np.float32), axis=1)).mean() if sel.ndim==2 else 0
+                gy = np.abs(np.diff(sel.astype(np.float32), axis=0)).mean() if sel.ndim==2 else 0
+                lapv = float(gx + gy)
+            feats.append({"angle_sector": ia, "ring": ir, "mean": mean, "std": std, "edge_density": edged, "lapvar": lapv})
+    tmp = np.array([[f["std"], f["edge_density"], 1.0-abs(0.5-f["mean"]), f["lapvar"]] for f in feats], dtype=np.float32)
+    s_std = _normalize01(tmp[:,0]); s_edg = _normalize01(tmp[:,1]); s_cmn = _normalize01(tmp[:,2]); s_lap = _normalize01(tmp[:,3])
+    score = _normalize01(0.4*s_std + 0.4*s_edg + 0.2*s_cmn + 0.2*s_lap)
+    score_map = score.reshape(24, 5).tolist()
+    return {"quality": {**_basic_quality(img), **_find_radii(img)}, "features": feats, "score_map": score_map}
+
+def _top_flags(feats: List[Dict[str, Any]], k: int = 5) -> List[Dict[str, Any]]:
+    arr = []
+    for f in feats:
+        s = 0.4*f["std"] + 0.4*f["edge_density"] + 0.2*(1.0-abs(0.5-f["mean"])) + 0.2*f["lapvar"]
+        arr.append((s, f))
+    arr.sort(key=lambda t: t[0], reverse=True)
+    top = []
+    for s, f in arr[:k]:
+        top.append({"label": _sector_label(f["angle_sector"], f["ring"]), "score": float(s),
+                    "mean": f["mean"], "std": f["std"], "edge_density": f["edge_density"], "lapvar": f["lapvar"]})
+    return top
+
+def _symmetry(L: Dict[str, Any], R: Dict[str, Any]) -> Dict[str, float]:
+    Lm = np.array(L["score_map"], dtype=np.float32); Rm = np.array(R["score_map"], dtype=np.float32)
+    return {"left_total": float(Lm.mean()), "right_total": float(Rm.mean()), "delta": float(abs(Lm.mean()-Rm.mean()))}
+
+def _render_heatmap_png(score_map: List[List[float]], out_path: Path) -> None:
+    arr = np.array(score_map, dtype=np.float32)
+    H, W = arr.shape[0]*10, arr.shape[1]*40
+    img = Image.fromarray(np.uint8(_normalize01(arr)*255), mode="L").resize((W, H), Image.NEAREST)
+    img.save(out_path)
+
+def _save_report(exam_id: str, result: dict) -> str:
+    root = INBOX / exam_id; root.mkdir(parents=True, exist_ok=True)
+    meta = {"exam_id": exam_id, "age": result.get("age"), "gender": result.get("gender"), "task": result.get("task_received")}
+    (root/"meta.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
+    (root/"report.json").write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
+    L = result.get("left", {}); R = result.get("right", {})
+    if L.get("score_map"): _render_heatmap_png(L["score_map"], root/"heatmap_left.png")
+    if R.get("score_map"): _render_heatmap_png(R["score_map"], root/"heatmap_right.png")
+    return str(root)
+
+def _synthesize_text(result: dict) -> str:
+    parts=[]
+    parts.append(f"Иридологический авто-черновик • ID={result.get('exam_id')} • Возраст={result.get('age')} • Пол={result.get('gender')}")
+    L = result.get("left", {}); R = result.get("right", {})
+    def add_side(name, d):
+        q = d.get("quality", {})
+        parts.append(f"{name}: яркость={q.get('brightness'):.3f}, блики={q.get('glare'):.3f}, резкость={q.get('sharp_lapvar'):.1f}")
+        tz = d.get("top_zones", [])[:5]
+        if tz:
+            parts.append(f"Топ-зоны {name}:")
+            for z in tz: parts.append(f"• {z.get('label')} (score={z.get('score'):.3f})")
+    if L: add_side("ЛЕВЫЙ", L)
+    if R: add_side("ПРАВЫЙ", R)
+    sym = result.get("symmetry", {})
+    if sym: parts.append(f"Симметрия: L={sym.get('left_total',0):.3f}, R={sym.get('right_total',0):.3f}, Δ={sym.get('delta',0):.3f}")
+    parts.append("Комментарий: авто-черновик по эвристикам (v1). Не является медицинским заключением.")
+    return "\n".join(parts)
+
+def _save_report_txt(exam_id: str, result: dict, root: Path) -> str:
+    (root/"report.txt").write_text(_synthesize_text(result), encoding="utf-8")
+    return str(root)
+
+@app.post("/analyze")
+async def analyze(
+    exam_id: str = Form(...),
+    age: int = Form(...),
+    gender: str = Form(...),
+    task: str = Form(default=''),
+    left: UploadFile = File(...),
+    right: UploadFile = File(...),
+):
+    Limg = Image.open(left.file).convert("RGB")
+    Rimg = Image.open(right.file).convert("RGB")
+    L = _score_map_and_features(Limg); R = _score_map_and_features(Rimg)
+    Lf = L["features"]; Rf = R["features"]
+    result = {
+        "exam_id": exam_id, "age": age, "gender": gender, "task_received": task,
+        "left":  {"quality": L["quality"], "quality_flags": _flags_quality(L["quality"]), "top_zones": _top_flags(Lf, 5), "score_map": L["score_map"]},
+        "right": {"quality": R["quality"], "quality_flags": _flags_quality(R["quality"]), "top_zones": _top_flags(Rf, 5), "score_map": R["score_map"]},
+        "symmetry": _symmetry(L, R),
+        "summary": "v1: heatmap+symmetry (эвристика). Not a medical diagnosis."
+    }
+    _save_report(exam_id, result)
+    _save_report_txt(exam_id, result, INBOX/exam_id)
+    result["text_summary"] = _synthesize_text(result)
+    result["text_summary"] = _synthesize_text(result)
+    _save_report(exam_id, result)
+    _save_report_txt(exam_id, result, INBOX/exam_id)
+    pdf_path = _save_report_pdf(exam_id, result, INBOX/exam_id)
+    result["report_pdf_path"] = str(pdf_path)
+    result["report_txt_path"] = str((INBOX/exam_id/"report.txt"))
+    return JSONResponse(result)
+
+@app.get("/")
+def root():
+    return {"status": "ok"}
+
+
+def _save_report_pdf(exam_id: str, result: dict, root: Path):
+    _ensure_fonts()
+    from reportlab.pdfgen import canvas
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.utils import ImageReader
+    W, H = A4
+    pdf_path = root / 'report.pdf'
+    c = canvas.Canvas(str(pdf_path), pagesize=A4)
+    font = _pick_font(result.get('locale'))
+    title = 'Iris Auto-Report'
+    try:
+        title = BRAND_NAME
+    except Exception:
+        pass
+    c.setFont(font, 16)
+    c.drawString(36, H-54, title)
+    try:
+        c.setFont(font, 11)
+        c.drawString(36, H-72, BRAND_SUBTITLE)
+    except Exception:
+        pass
+    c.setFont(font, 9)
+    leading = 14
+    y = H - 96
+    for line in (result.get('text_summary','')).split('\n'):
+        c.drawString(36, y, line)
+        y -= leading
+        if y < 72:
+            c.showPage(); c.setFont(font, 9); y = H - 72
+    c.setFont(font, 10)
+    y -= 10
+    if y < 100:
+        c.showPage(); c.setFont(font, 10); y = H - 72
+    c.drawString(36, y, 'Ссылки на результаты:')
+    y -= 14
+    def link_line(label, url, y):
+        if not url:
+            return y
+        txt = f'• {label}: {url}'
+        c.setFillColor(blue); c.drawString(48, y, txt); c.setFillColor(black)
+        from reportlab.pdfbase import pdfmetrics as _pm
+        w = _pm.stringWidth(txt, font, 10)
+        c.linkURL(url, (48, y-2, 48+w, y+10), relative=0)
+        return y - 14
+    y = link_line('PDF', result.get('report_pdf_url'), y)
+    y = link_line('TXT', result.get('report_txt_url'), y)
+    c.showPage(); c.setFont(font, 14)
+    c.drawString(36, H-54, 'Фотографии и зоны значимости')
+    left_png  = root / 'left.jpg'
+    right_png = root / 'right.jpg'
+    def draw_img(p, x, y, w=240, h=240):
+        try:
+            c.drawImage(ImageReader(str(p)), x, y, width=w, height=h, preserveAspectRatio=True, mask='auto')
+        except Exception:
+            c.rect(x, y, w, h)
+    draw_img(left_png, 36,  H-320)
+    draw_img(right_png, 300, H-320)
+    c.save()
+    return str(pdf_path)
+
