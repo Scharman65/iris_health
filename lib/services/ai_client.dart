@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
@@ -9,8 +10,9 @@ import 'package:http_parser/http_parser.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
-import 'ai_models.dart';
 import 'ai_endpoint_discovery.dart';
+import 'ai_errors.dart';
+import 'ai_models.dart';
 
 class AiClient {
   static final AiClient instance = AiClient._();
@@ -53,7 +55,7 @@ class AiClient {
   void _assertNotLocalhost() {
     final b = _normalize(_baseUrl);
     if (b.contains('127.0.0.1') || b.contains('localhost')) {
-      throw Exception(
+      throw AiError(
         'AI baseUrl points to localhost. On iPhone use Mac LAN IP, e.g. http://172.20.10.11:8010',
       );
     }
@@ -75,7 +77,7 @@ class AiClient {
   Future<void> setBaseUrl(String newBaseUrl) async {
     final n = _normalize(newBaseUrl);
     if (n.isEmpty) {
-      throw Exception('baseUrl is empty');
+      throw AiError('baseUrl is empty');
     }
     _baseUrl = n;
     final prefs = await SharedPreferences.getInstance();
@@ -148,16 +150,9 @@ class AiClient {
     return found;
   }
 
-  /// Единственный канонический анализ пары (левый + правый) через POST /analyze
-  /// FastAPI v0.6.1 ожидает multipart:
-  ///   - file_left
-  ///   - file_right
-  ///
-  /// Hardening:
-  /// - request_id: UUID v4
-  /// - idempotency_key: sha256(examId|sha256(left)|sha256(right))
-  ///
-  /// Возвращает сырой JSON-объект (Map) для дальнейшей обработки в сервисе/UI.
+  /// Canonical: POST /analyze (multipart: file_left, file_right)
+  /// Hardening: request_id + idempotency_key
+  /// Errors: AiTimeoutError / AiNetworkError / AiServerError / AiParseError
   Future<Map<String, dynamic>> analyzePair({
     required File leftFile,
     required File rightFile,
@@ -227,9 +222,15 @@ class AiClient {
       swSend.stop();
       _dbg(
           'status=${streamed.statusCode} sendMs=${swSend.elapsedMilliseconds}');
+    } on TimeoutException catch (e) {
+      _dbg('send timeout: $e totalMs=${swTotal.elapsedMilliseconds}');
+      throw AiTimeoutError('AI request timed out', cause: e);
+    } on SocketException catch (e) {
+      _dbg('send network error: $e totalMs=${swTotal.elapsedMilliseconds}');
+      throw AiNetworkError('AI network error', cause: e);
     } catch (e) {
       _dbg('send failed: $e totalMs=${swTotal.elapsedMilliseconds}');
-      rethrow;
+      throw AiError('AI request failed', cause: e);
     }
 
     final swBody = Stopwatch()..start();
@@ -239,35 +240,41 @@ class AiClient {
     final headLen = min(body.length, 4096);
     final head = body.substring(0, headLen);
     _dbg(
-        'bodyMs=${swBody.elapsedMilliseconds} bodyLen=${body.length} bodyHead=${jsonEncode(head)}');
+      'bodyMs=${swBody.elapsedMilliseconds} '
+      'bodyLen=${body.length} '
+      'bodyHead=${jsonEncode(head)}',
+    );
 
     swTotal.stop();
 
     if (streamed.statusCode != 200) {
       _dbg(
           'AI non-200 status=${streamed.statusCode} totalMs=${swTotal.elapsedMilliseconds}');
-      throw Exception('AI error ${streamed.statusCode}: $body');
+      throw AiServerError(
+        'AI server returned error',
+        statusCode: streamed.statusCode,
+        body: body,
+      );
     }
 
     try {
       final jsonAny = jsonDecode(body);
       if (jsonAny is! Map) {
-        throw Exception('AI invalid JSON: expected object');
+        throw AiParseError('AI invalid JSON: expected object');
       }
       final m = Map<String, dynamic>.from(jsonAny);
 
       await _setLastOkBaseUrl(_baseUrl);
       _dbg('AI OK totalMs=${swTotal.elapsedMilliseconds}');
-
       return m;
     } catch (e) {
       _dbg('jsonDecode failed: $e totalMs=${swTotal.elapsedMilliseconds}');
-      rethrow;
+      if (e is AiError) rethrow;
+      throw AiParseError('AI response parse failed', cause: e);
     }
   }
 
-  /// Legacy single-eye endpoint (kept for now; not part of canonical flow).
-  /// NOTE: Server may not provide /analyze-eye. Canonical flow is analyzePair() -> /analyze.
+  /// Legacy single-eye endpoint (not canonical).
   Future<AiAnalyzeResponse> analyzeEye({
     required File file,
     required String side,
@@ -278,7 +285,7 @@ class AiClient {
   }) async {
     final b = _normalize(_baseUrl);
     if (b.contains('127.0.0.1') || b.contains('localhost')) {
-      throw Exception(
+      throw AiError(
         'AI baseUrl points to localhost. On iPhone use Mac LAN IP, e.g. http://172.20.10.11:8010',
       );
     }
@@ -304,7 +311,8 @@ class AiClient {
 
     final filename = '${examId}_$side.jpg';
     _dbg(
-        'file=${file.path} filename=$filename bytes=${bytes.length} readMs=${swRead.elapsedMilliseconds}');
+      'file=${file.path} filename=$filename bytes=${bytes.length} readMs=${swRead.elapsedMilliseconds}',
+    );
 
     req.files.add(
       http.MultipartFile.fromBytes(
