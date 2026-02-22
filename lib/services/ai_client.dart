@@ -2,10 +2,12 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
+import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:uuid/uuid.dart';
 
 import 'ai_models.dart';
 import 'ai_endpoint_discovery.dart';
@@ -56,6 +58,8 @@ class AiClient {
       );
     }
   }
+
+  String _sha256Hex(List<int> bytes) => sha256.convert(bytes).toString();
 
   Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
@@ -149,6 +153,10 @@ class AiClient {
   ///   - file_left
   ///   - file_right
   ///
+  /// Hardening:
+  /// - request_id: UUID v4
+  /// - idempotency_key: sha256(examId|sha256(left)|sha256(right))
+  ///
   /// Возвращает сырой JSON-объект (Map) для дальнейшей обработки в сервисе/UI.
   Future<Map<String, dynamic>> analyzePair({
     required File leftFile,
@@ -165,22 +173,32 @@ class AiClient {
 
     final req = http.MultipartRequest('POST', uri);
 
-    req.fields['exam_id'] = examId;
-    req.fields['age'] = age.toString();
-    req.fields['gender'] = gender;
-    req.fields['locale'] = locale;
-    req.fields['task'] = 'Iridodiagnosis';
-
-    _dbg('POST $uri');
-    _dbg('fields=${Map<String, String>.from(req.fields)}');
+    final requestId = const Uuid().v4();
 
     final swRead = Stopwatch()..start();
     final leftBytes = await leftFile.readAsBytes();
     final rightBytes = await rightFile.readAsBytes();
     swRead.stop();
 
+    final leftHash = _sha256Hex(leftBytes);
+    final rightHash = _sha256Hex(rightBytes);
+    final idempotencyKey =
+        _sha256Hex(utf8.encode('$examId|$leftHash|$rightHash'));
+
+    req.fields['exam_id'] = examId;
+    req.fields['age'] = age.toString();
+    req.fields['gender'] = gender;
+    req.fields['locale'] = locale;
+    req.fields['task'] = 'Iridodiagnosis';
+
+    req.fields['request_id'] = requestId;
+    req.fields['idempotency_key'] = idempotencyKey;
+
+    _dbg('POST $uri');
     _dbg(
-      'files readMs=${swRead.elapsedMilliseconds} '
+      'request_id=${requestId.substring(0, 8)} '
+      'idk=${idempotencyKey.substring(0, 12)} '
+      'readMs=${swRead.elapsedMilliseconds} '
       'leftBytes=${leftBytes.length} rightBytes=${rightBytes.length}',
     );
 
@@ -208,7 +226,7 @@ class AiClient {
       streamed = await req.send().timeout(const Duration(seconds: 120));
       swSend.stop();
       _dbg(
-          'response status=${streamed.statusCode} sendMs=${swSend.elapsedMilliseconds}');
+          'status=${streamed.statusCode} sendMs=${swSend.elapsedMilliseconds}');
     } catch (e) {
       _dbg('send failed: $e totalMs=${swTotal.elapsedMilliseconds}');
       rethrow;
