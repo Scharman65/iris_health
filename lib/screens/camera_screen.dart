@@ -60,6 +60,9 @@ class _CameraScreenState extends State<CameraScreen> {
 
   bool get _bothDone => _leftDone && _rightDone;
 
+  Offset _ringOffset = Offset.zero;
+  bool _ringDragging = false;
+
   bool _focusLocked = false;
   bool _torchOn = false;
   Offset? _focusTapPos;
@@ -425,6 +428,13 @@ class _CameraScreenState extends State<CameraScreen> {
                 : _focusCenter,
             icon: const Icon(Icons.center_focus_strong),
           ),
+          IconButton(
+            tooltip: 'Сбросить кольцо',
+            onPressed: (_controller == null || _capturing || _sending)
+                ? null
+                : () => setState(() => _ringOffset = Offset.zero),
+            icon: const Icon(Icons.center_focus_weak),
+          ),
         ],
       ),
       body: _initializing
@@ -438,12 +448,40 @@ class _CameraScreenState extends State<CameraScreen> {
                         Positioned.fill(
                           child: GestureDetector(
                             behavior: HitTestBehavior.opaque,
-                            onTapDown: (d) => _tapToFocus(d, constraints),
+                            onPanStart: (_) {
+                              if (_capturing || _sending) return;
+                              setState(() => _ringDragging = true);
+                            },
+                            onPanEnd: (_) {
+                              if (!mounted) return;
+                              setState(() => _ringDragging = false);
+                            },
+                            onPanCancel: () {
+                              if (!mounted) return;
+                              setState(() => _ringDragging = false);
+                            },
+                            onPanUpdate: (d) {
+                              if (_capturing || _sending) return;
+                              final maxDx = constraints.maxWidth * 0.18;
+                              final maxDy = constraints.maxHeight * 0.18;
+                              final next = Offset(
+                                (_ringOffset.dx + d.delta.dx)
+                                    .clamp(-maxDx, maxDx),
+                                (_ringOffset.dy + d.delta.dy)
+                                    .clamp(-maxDy, maxDy),
+                              );
+                              setState(() => _ringOffset = next);
+                            },
+                            onTapDown: (d) {
+                              if (_ringDragging) return;
+                              _tapToFocus(d, constraints);
+                            },
                             child: CameraPreview(_controller!),
                           ),
                         ),
                         Positioned.fill(
                           child: CameraOverlay(
+                            ringOffset: _ringOffset,
                             sharpness: _liveSharpness,
                             threshold: _adaptiveThreshold,
                             stable: _stable,
