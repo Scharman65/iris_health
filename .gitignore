@@ -82,3 +82,26 @@ backups/
 iris_ai_server/pdf/tmp/
 iris_ai_server/storage/reports/
 *.pdf
+
+# === generated / heavy artifacts (do not commit) ===
+*.ipa
+*.dSYM
+*.xcarchive
+
+ios_broken/
+ios_broken_full_backup_*/
+ios_backup_fix/
+
+ai_inbox/
+tmp_report/
+crashes/
+
+iris_ai_server/storage/reports/
+iris_ai_server/pdf/tmp/
+
+left_test.jpg
+L.jpg
+R.jpg
+dejavu.zip
+run_log.txt
+get-pip.py
