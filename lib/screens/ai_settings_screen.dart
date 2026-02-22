@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 
 import '../services/ai_client.dart';
 
+import 'ai_journal_screen.dart';
+
 class AiSettingsScreen extends StatefulWidget {
   const AiSettingsScreen({super.key});
 
@@ -323,6 +325,16 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
           ),
           const SizedBox(height: 8),
           SelectableText(_lastOk ?? '(none)'),
+          const SizedBox(height: 20),
+          OutlinedButton.icon(
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const AiJournalScreen()),
+              );
+            },
+            icon: const Icon(Icons.list),
+            label: const Text('AI Journal'),
+          ),
         ],
       ),
     );
