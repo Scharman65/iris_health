@@ -48,11 +48,6 @@ class AiClient {
 
       await box.add(e);
 
-      if (kDebugMode) {
-        // ignore: avoid_print
-        print('[AI] journal: saved entry, total=' + box.length.toString());
-      }
-
       // keep only last 50 entries
       final extra = box.length - 50;
       if (extra > 0) {
