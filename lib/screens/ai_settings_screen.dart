@@ -16,12 +16,16 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
   bool _testing = false;
   String? _testResult;
   String? _lastOk;
+  bool _checking = false;
+  bool? _healthOk;
+  int? _latencyMs;
 
   @override
   void initState() {
     super.initState();
     _ctrl.text = AiClient.instance.baseUrl;
     _loadLastOk();
+    _checkHealth();
   }
 
   Future<void> _loadLastOk() async {
@@ -30,6 +34,44 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
     setState(() {
       _lastOk = v;
     });
+  }
+
+  Future<void> _checkHealth(
+      {Duration timeout = const Duration(seconds: 3)}) async {
+    final candidate = _normalize(_ctrl.text);
+    if (candidate.isEmpty) return;
+
+    setState(() {
+      _checking = true;
+      _healthOk = null;
+      _latencyMs = null;
+    });
+
+    final sw = Stopwatch()..start();
+    try {
+      await AiClient.instance.setBaseUrl(candidate);
+      final ok = await AiClient.instance.healthWithTimeout(timeout);
+      sw.stop();
+      await _loadLastOk();
+      if (!mounted) return;
+      setState(() {
+        _healthOk = ok;
+        _latencyMs = sw.elapsedMilliseconds;
+      });
+    } catch (_) {
+      sw.stop();
+      await _loadLastOk();
+      if (!mounted) return;
+      setState(() {
+        _healthOk = false;
+        _latencyMs = sw.elapsedMilliseconds;
+      });
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _checking = false;
+      });
+    }
   }
 
   @override
@@ -58,6 +100,7 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
       setState(() {
         _testResult = ok ? 'OK: /health = 200' : 'FAIL: /health not 200';
       });
+      await _checkHealth(timeout: const Duration(seconds: 3));
     } catch (e) {
       setState(() {
         _testResult = 'ERROR: $e';
@@ -97,6 +140,7 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
       setState(() {
         _testResult = 'OK: found $found';
       });
+      await _checkHealth(timeout: const Duration(seconds: 3));
     } catch (e) {
       setState(() {
         _testResult = 'ERROR: $e';
@@ -115,6 +159,7 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('AI_BASE_URL сохранён')),
     );
+    await _checkHealth(timeout: const Duration(seconds: 3));
   }
 
   Future<void> _reset() async {
@@ -128,6 +173,7 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Сброшено на значение по умолчанию')),
     );
+    await _checkHealth(timeout: const Duration(seconds: 3));
   }
 
   @override
@@ -198,6 +244,60 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              color: theme.colorScheme.surfaceContainerHighest,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Diagnostics',
+                  style: theme.textTheme.titleSmall,
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        _checking
+                            ? 'Health: checking...'
+                            : (_healthOk == null
+                                ? 'Health: unknown'
+                                : (_healthOk == true
+                                    ? 'Health: OK'
+                                    : 'Health: FAIL')),
+                      ),
+                    ),
+                    if (_latencyMs != null) Text('Latency: ${_latencyMs}ms'),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                if (_ctrl.text.contains('localhost') ||
+                    _ctrl.text.contains('127.0.0.1'))
+                  const Text(
+                    'Hint: на iPhone нельзя localhost/127.0.0.1 — укажи LAN IP Mac, например http://172.20.10.11:8010',
+                  ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: _checking || _testing ? null : _checkHealth,
+                    child: _checking
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text('Check now'),
+                  ),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 16),
           if (_testResult != null)
