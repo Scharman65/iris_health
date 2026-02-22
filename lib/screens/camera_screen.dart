@@ -6,6 +6,7 @@ import 'dart:typed_data';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import '../services/diagnosis_service.dart';
+import '../services/ai_errors.dart';
 
 import '../camera/camera_orchestrator.dart';
 import '../camera/live_sharpness_analyzer.dart';
@@ -233,6 +234,25 @@ class _CameraScreenState extends State<CameraScreen> {
     return path;
   }
 
+  String _aiErrorMessage(Object e) {
+    if (e is AiTimeoutError) {
+      return 'AI сервер не отвечает (таймаут). Проверь Wi-Fi/LAN и IP в настройках AI.';
+    }
+    if (e is AiNetworkError) {
+      return 'Нет соединения с AI сервером. Проверь Wi-Fi/LAN и доступность сервера.';
+    }
+    if (e is AiServerError) {
+      return 'AI сервер вернул ошибку ${e.statusCode}. Попробуй ещё раз.';
+    }
+    if (e is AiParseError) {
+      return 'AI сервер вернул некорректный ответ. Попробуй ещё раз.';
+    }
+    if (e is AiError) {
+      return e.message;
+    }
+    return 'Ошибка AI: $e';
+  }
+
   Future<void> _analyzeAndOpenSummary() async {
     if (_left == null || _right == null) return;
     if (_sending) return;
@@ -273,7 +293,7 @@ class _CameraScreenState extends State<CameraScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ошибка AI: $e')),
+        SnackBar(content: Text(_aiErrorMessage(e))),
       );
     } finally {
       if (mounted) setState(() => _sending = false);
