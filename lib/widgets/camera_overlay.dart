@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 class CameraOverlay extends StatelessWidget {
+  final Offset ringOffset;
   final double sharpness;
   final double threshold;
   final bool stable;
@@ -12,6 +13,7 @@ class CameraOverlay extends StatelessWidget {
   final double motionPct;
 
   const CameraOverlay({
+    this.ringOffset = Offset.zero,
     super.key,
     required this.sharpness,
     required this.threshold,
@@ -39,7 +41,7 @@ class CameraOverlay extends StatelessWidget {
         children: [
           Positioned.fill(
             child: CustomPaint(
-              painter: _RingPainter(),
+              painter: _RingPainter(ringOffset: ringOffset),
             ),
           ),
           Positioned(
@@ -257,10 +259,14 @@ class _HudCompact extends StatelessWidget {
 }
 
 class _RingPainter extends CustomPainter {
+  _RingPainter({required this.ringOffset});
+
+  final Offset ringOffset;
+
   @override
   void paint(Canvas canvas, Size size) {
     final shortest = size.shortestSide;
-    final center = Offset(size.width / 2, size.height / 2);
+    final center = Offset(size.width / 2, size.height / 2) + ringOffset;
     final r = shortest * 0.33;
 
     final p = Paint()
@@ -275,5 +281,6 @@ class _RingPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _RingPainter oldDelegate) =>
+      oldDelegate.ringOffset != ringOffset;
 }
