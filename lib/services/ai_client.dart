@@ -5,6 +5,7 @@ import 'dart:math';
 
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -12,6 +13,7 @@ import 'package:uuid/uuid.dart';
 
 import 'ai_endpoint_discovery.dart';
 import 'ai_errors.dart';
+import '../models/ai_journal_entry.dart';
 import 'ai_models.dart';
 
 class AiClient {
@@ -37,6 +39,24 @@ class AiClient {
     if (kDebugMode) {
       // ignore: avoid_print
       print('[AI] $msg');
+    }
+  }
+
+  Future<void> _journal(AiJournalEntry e) async {
+    try {
+      final box = Hive.isBoxOpen('ai_journal')
+          ? Hive.box<AiJournalEntry>('ai_journal')
+          : await Hive.openBox<AiJournalEntry>('ai_journal');
+
+      await box.add(e);
+
+      // keep only last 50 entries
+      final extra = box.length - 50;
+      if (extra > 0) {
+        await box.deleteAll(List.generate(extra, (i) => i));
+      }
+    } catch (_) {
+      // Journal must never break AI flow.
     }
   }
 
@@ -169,6 +189,7 @@ class AiClient {
     final req = http.MultipartRequest('POST', uri);
 
     final requestId = const Uuid().v4();
+    final startedAt = DateTime.now();
 
     final swRead = Stopwatch()..start();
     final leftBytes = await leftFile.readAsBytes();
@@ -278,6 +299,19 @@ class AiClient {
     if (streamed.statusCode != 200) {
       _dbg(
           'AI non-200 status=${streamed.statusCode} totalMs=${swTotal.elapsedMilliseconds}');
+
+      await _journal(
+        AiJournalEntry(
+          requestId: requestId,
+          examId: examId,
+          startedAt: startedAt,
+          durationMs: swTotal.elapsedMilliseconds,
+          status: 'server',
+          statusCode: streamed.statusCode,
+          message: 'AI non-200',
+        ),
+      );
+
       throw AiServerError(
         'AI server returned error',
         statusCode: streamed.statusCode,
@@ -294,9 +328,33 @@ class AiClient {
 
       await _setLastOkBaseUrl(_baseUrl);
       _dbg('AI OK totalMs=${swTotal.elapsedMilliseconds}');
+
+      await _journal(
+        AiJournalEntry(
+          requestId: requestId,
+          examId: examId,
+          startedAt: startedAt,
+          durationMs: swTotal.elapsedMilliseconds,
+          status: 'ok',
+        ),
+      );
+
       return m;
     } catch (e) {
       _dbg('jsonDecode failed: $e totalMs=${swTotal.elapsedMilliseconds}');
+
+      final status = (e is AiParseError) ? 'parse' : 'error';
+      await _journal(
+        AiJournalEntry(
+          requestId: requestId,
+          examId: examId,
+          startedAt: startedAt,
+          durationMs: swTotal.elapsedMilliseconds,
+          status: status,
+          message: (e is AiError) ? e.message : e.toString(),
+        ),
+      );
+
       if (e is AiError) rethrow;
       throw AiParseError('AI response parse failed', cause: e);
     }
