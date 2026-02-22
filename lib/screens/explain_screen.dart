@@ -56,6 +56,19 @@ class _ExplainScreenState extends State<ExplainScreen> {
           }
 
           if (snap.hasError) {
+            final err = snap.error;
+            if (err is ExplainNotSupportedError) {
+              return const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Text(
+                    'Пояснение недоступно на текущем AI-сервере.',
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              );
+            }
+
             return _ErrorPane(
               error: snap.error.toString(),
               onRetry: () {

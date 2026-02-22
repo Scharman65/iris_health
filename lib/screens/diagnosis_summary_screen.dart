@@ -1,7 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'explain_screen.dart';
+import '../services/ai_client.dart';
 
 class DiagnosisSummaryScreen extends StatelessWidget {
   const DiagnosisSummaryScreen({
@@ -55,6 +57,18 @@ class DiagnosisSummaryScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _openPdfUrl(BuildContext context, String url) async {
+    final uri = Uri.parse(url);
+    final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!ok) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Не удалось открыть PDF')),
+        );
+      }
+    }
   }
 
   void _openExplain(BuildContext context, Map<String, dynamic> analysis) {
@@ -142,6 +156,45 @@ class DiagnosisSummaryScreen extends StatelessWidget {
         ? Map<String, dynamic>.from(aiResult!['raw'] as Map)
         : <String, dynamic>{};
 
+    final explainSupported = () {
+      final v = raw['explain_supported'];
+      if (v is bool) return v;
+      if (v is String) return v.toLowerCase() == 'true';
+
+      // Heuristic: current AI server returns PDF path embedded in summary (PDF-only mode),
+      // and does not support /explain (404). Hide the button to avoid dead-end UX.
+      final s = summary;
+      if (s.contains('/report/') || s.contains('PDF:')) return false;
+
+      return true;
+    }();
+
+    final pdfPathRaw = (raw['pdf_path'] ??
+            raw['pdf'] ??
+            raw['report_pdf'] ??
+            aiResult!['pdf_path'])
+        ?.toString()
+        .trim();
+
+    // Fallback: server may embed PDF path into summary like: "PDF: /report/xxx.pdf"
+
+    final pdfFromSummary = () {
+      final mm = RegExp(r'(\/report\/[^\s]+\.pdf)').firstMatch(summary);
+
+      return mm?.group(1);
+    }();
+
+    final pdfPath = (pdfPathRaw != null && pdfPathRaw.isNotEmpty)
+        ? pdfPathRaw
+        : ((pdfFromSummary ?? '').trim());
+
+    final pdfUrl = (pdfPath.isEmpty)
+        ? null
+        : (pdfPath.startsWith('http')
+            ? pdfPath
+            : (pdfPath.startsWith('/')
+                ? '${AiClient.instance.baseUrl}$pdfPath'
+                : '${AiClient.instance.baseUrl}/$pdfPath'));
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(12),
@@ -152,21 +205,29 @@ class DiagnosisSummaryScreen extends StatelessWidget {
             const SizedBox(height: 8),
             Text(summary),
             const SizedBox(height: 12),
-            ElevatedButton(
-              onPressed: () {
-                _openExplain(
-                  context,
-                  <String, dynamic>{
-                    'exam_id': examId,
-                    'summary': summary,
-                    'findings': findings,
-                    'raw': raw,
-                  },
-                );
-              },
-              child: const Text('Пояснение'),
-            ),
+            if (explainSupported)
+              ElevatedButton(
+                onPressed: () {
+                  _openExplain(
+                    context,
+                    <String, dynamic>{
+                      'exam_id': examId,
+                      'summary': summary,
+                      'findings': findings,
+                      'raw': raw,
+                    },
+                  );
+                },
+                child: const Text('Пояснение'),
+              ),
             const SizedBox(height: 12),
+            if (pdfUrl != null)
+              ElevatedButton.icon(
+                onPressed: () => _openPdfUrl(context, pdfUrl),
+                icon: const Icon(Icons.picture_as_pdf),
+                label: const Text('Открыть PDF'),
+              ),
+            if (pdfUrl != null) const SizedBox(height: 12),
             if (findings.isNotEmpty) ...[
               const Divider(),
               ...findings.map((f) {

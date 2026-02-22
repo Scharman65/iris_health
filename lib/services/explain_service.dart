@@ -5,6 +5,13 @@ import 'package:http/http.dart' as http;
 import '../models/explain_models.dart';
 import 'ai_client.dart';
 
+class ExplainNotSupportedError implements Exception {
+  ExplainNotSupportedError(this.message);
+  final String message;
+  @override
+  String toString() => message;
+}
+
 class ExplainService {
   ExplainService({AiClient? client}) : _client = client ?? AiClient.instance;
 
@@ -37,6 +44,11 @@ class ExplainService {
           body: jsonEncode(payload),
         )
         .timeout(const Duration(seconds: 20));
+
+    if (resp.statusCode == 404) {
+      throw ExplainNotSupportedError(
+          'Explain endpoint is not available on this AI server');
+    }
 
     if (resp.statusCode < 200 || resp.statusCode >= 300) {
       throw Exception('Explain failed: ${resp.statusCode} ${resp.body}');
