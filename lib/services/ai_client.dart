@@ -48,6 +48,15 @@ class AiClient {
     return Uri.parse('$b$p');
   }
 
+  void _assertNotLocalhost() {
+    final b = _normalize(_baseUrl);
+    if (b.contains('127.0.0.1') || b.contains('localhost')) {
+      throw Exception(
+        'AI baseUrl points to localhost. On iPhone use Mac LAN IP, e.g. http://172.20.10.11:8010',
+      );
+    }
+  }
+
   Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
     final saved = prefs.getString(_prefsKey);
@@ -135,6 +144,112 @@ class AiClient {
     return found;
   }
 
+  /// Единственный канонический анализ пары (левый + правый) через POST /analyze
+  /// FastAPI v0.6.1 ожидает multipart:
+  ///   - file_left
+  ///   - file_right
+  ///
+  /// Возвращает сырой JSON-объект (Map) для дальнейшей обработки в сервисе/UI.
+  Future<Map<String, dynamic>> analyzePair({
+    required File leftFile,
+    required File rightFile,
+    required String examId,
+    required int age,
+    required String gender,
+    String locale = 'ru',
+  }) async {
+    _assertNotLocalhost();
+
+    final uri = _u('/analyze');
+    final swTotal = Stopwatch()..start();
+
+    final req = http.MultipartRequest('POST', uri);
+
+    req.fields['exam_id'] = examId;
+    req.fields['age'] = age.toString();
+    req.fields['gender'] = gender;
+    req.fields['locale'] = locale;
+    req.fields['task'] = 'Iridodiagnosis';
+
+    _dbg('POST $uri');
+    _dbg('fields=${Map<String, String>.from(req.fields)}');
+
+    final swRead = Stopwatch()..start();
+    final leftBytes = await leftFile.readAsBytes();
+    final rightBytes = await rightFile.readAsBytes();
+    swRead.stop();
+
+    _dbg(
+      'files readMs=${swRead.elapsedMilliseconds} '
+      'leftBytes=${leftBytes.length} rightBytes=${rightBytes.length}',
+    );
+
+    req.files.add(
+      http.MultipartFile.fromBytes(
+        'file_left',
+        leftBytes,
+        filename: '${examId}_left.jpg',
+        contentType: MediaType('image', 'jpeg'),
+      ),
+    );
+
+    req.files.add(
+      http.MultipartFile.fromBytes(
+        'file_right',
+        rightBytes,
+        filename: '${examId}_right.jpg',
+        contentType: MediaType('image', 'jpeg'),
+      ),
+    );
+
+    http.StreamedResponse streamed;
+    try {
+      final swSend = Stopwatch()..start();
+      streamed = await req.send().timeout(const Duration(seconds: 120));
+      swSend.stop();
+      _dbg(
+          'response status=${streamed.statusCode} sendMs=${swSend.elapsedMilliseconds}');
+    } catch (e) {
+      _dbg('send failed: $e totalMs=${swTotal.elapsedMilliseconds}');
+      rethrow;
+    }
+
+    final swBody = Stopwatch()..start();
+    final body = await streamed.stream.bytesToString();
+    swBody.stop();
+
+    final headLen = min(body.length, 4096);
+    final head = body.substring(0, headLen);
+    _dbg(
+        'bodyMs=${swBody.elapsedMilliseconds} bodyLen=${body.length} bodyHead=${jsonEncode(head)}');
+
+    swTotal.stop();
+
+    if (streamed.statusCode != 200) {
+      _dbg(
+          'AI non-200 status=${streamed.statusCode} totalMs=${swTotal.elapsedMilliseconds}');
+      throw Exception('AI error ${streamed.statusCode}: $body');
+    }
+
+    try {
+      final jsonAny = jsonDecode(body);
+      if (jsonAny is! Map) {
+        throw Exception('AI invalid JSON: expected object');
+      }
+      final m = Map<String, dynamic>.from(jsonAny);
+
+      await _setLastOkBaseUrl(_baseUrl);
+      _dbg('AI OK totalMs=${swTotal.elapsedMilliseconds}');
+
+      return m;
+    } catch (e) {
+      _dbg('jsonDecode failed: $e totalMs=${swTotal.elapsedMilliseconds}');
+      rethrow;
+    }
+  }
+
+  /// Legacy single-eye endpoint (kept for now; not part of canonical flow).
+  /// NOTE: Server may not provide /analyze-eye. Canonical flow is analyzePair() -> /analyze.
   Future<AiAnalyzeResponse> analyzeEye({
     required File file,
     required String side,
@@ -170,7 +285,8 @@ class AiClient {
     swRead.stop();
 
     final filename = '${examId}_$side.jpg';
-    _dbg('file=${file.path} filename=$filename bytes=${bytes.length} readMs=${swRead.elapsedMilliseconds}');
+    _dbg(
+        'file=${file.path} filename=$filename bytes=${bytes.length} readMs=${swRead.elapsedMilliseconds}');
 
     req.files.add(
       http.MultipartFile.fromBytes(
@@ -186,7 +302,8 @@ class AiClient {
       final swSend = Stopwatch()..start();
       streamed = await req.send().timeout(const Duration(seconds: 90));
       swSend.stop();
-      _dbg('response status=${streamed.statusCode} sendMs=${swSend.elapsedMilliseconds}');
+      _dbg(
+          'response status=${streamed.statusCode} sendMs=${swSend.elapsedMilliseconds}');
     } catch (e) {
       _dbg('send failed: $e totalMs=${swTotal.elapsedMilliseconds}');
       rethrow;
@@ -198,12 +315,14 @@ class AiClient {
 
     final headLen = min(body.length, 4096);
     final head = body.substring(0, headLen);
-    _dbg('bodyMs=${swBody.elapsedMilliseconds} bodyLen=${body.length} bodyHead=${jsonEncode(head)}');
+    _dbg(
+        'bodyMs=${swBody.elapsedMilliseconds} bodyLen=${body.length} bodyHead=${jsonEncode(head)}');
 
     swTotal.stop();
 
     if (streamed.statusCode != 200) {
-      _dbg('AI non-200 status=${streamed.statusCode} totalMs=${swTotal.elapsedMilliseconds}');
+      _dbg(
+          'AI non-200 status=${streamed.statusCode} totalMs=${swTotal.elapsedMilliseconds}');
       throw Exception('AI error ${streamed.statusCode}: $body');
     }
 
