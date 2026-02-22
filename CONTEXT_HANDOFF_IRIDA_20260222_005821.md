@@ -65,3 +65,24 @@ Purpose:
 Logging:
 - Only short prefixes of keys are logged
 - No image content logged
+
+### 2026-02-22 — Typed AI errors + UI mapping
+
+Client (AiClient):
+- Throws typed errors for canonical POST /analyze:
+  - AiTimeoutError
+  - AiNetworkError
+  - AiServerError(statusCode, body)
+  - AiParseError
+  - AiError(message)
+
+UI (CameraScreen):
+- catch(e) maps AiError types to user-friendly messages:
+  - timeout -> "AI сервер не отвечает (таймаут)..."
+  - network -> "Нет соединения..."
+  - server -> "AI сервер вернул ошибку {statusCode}..."
+  - parse  -> "Некорректный ответ..."
+  - fallback -> "Ошибка AI: ..."
+
+Notes:
+- This does not change business flow; only improves diagnostics and UX.
