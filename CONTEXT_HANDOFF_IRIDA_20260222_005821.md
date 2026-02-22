@@ -48,3 +48,20 @@ Multipart fields:
 ### Status
 AI layer: STABLE
 Single gateway enforced.
+
+### 2026-02-22 — AI Hardening
+
+Added to AiClient.analyzePair():
+
+- request_id: UUID v4 (client-generated)
+- idempotency_key: sha256(examId|sha256(left)|sha256(right))
+
+Purpose:
+- Request tracing
+- Safe retries
+- Duplicate protection
+- Future server-side idempotency support
+
+Logging:
+- Only short prefixes of keys are logged
+- No image content logged
