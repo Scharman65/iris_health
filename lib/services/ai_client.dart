@@ -216,18 +216,46 @@ class AiClient {
     );
 
     http.StreamedResponse streamed;
-    try {
+
+    Future<http.StreamedResponse> _sendOnce() async {
       final swSend = Stopwatch()..start();
-      streamed = await req.send().timeout(const Duration(seconds: 120));
+      final r = await req.send().timeout(const Duration(seconds: 120));
       swSend.stop();
-      _dbg(
-          'status=${streamed.statusCode} sendMs=${swSend.elapsedMilliseconds}');
+      _dbg('status=${r.statusCode} sendMs=${swSend.elapsedMilliseconds}');
+      return r;
+    }
+
+    try {
+      streamed = await _sendOnce();
     } on TimeoutException catch (e) {
-      _dbg('send timeout: $e totalMs=${swTotal.elapsedMilliseconds}');
-      throw AiTimeoutError('AI request timed out', cause: e);
+      _dbg('send timeout: $e totalMs=${swTotal.elapsedMilliseconds} retry=1');
+      await Future<void>.delayed(const Duration(milliseconds: 350));
+      try {
+        streamed = await _sendOnce();
+      } on TimeoutException catch (e2) {
+        _dbg(
+            'send timeout (retry failed): $e2 totalMs=${swTotal.elapsedMilliseconds}');
+        throw AiTimeoutError('AI request timed out', cause: e2);
+      } on SocketException catch (e2) {
+        _dbg(
+            'send network error (retry failed): $e2 totalMs=${swTotal.elapsedMilliseconds}');
+        throw AiNetworkError('AI network error', cause: e2);
+      }
     } on SocketException catch (e) {
-      _dbg('send network error: $e totalMs=${swTotal.elapsedMilliseconds}');
-      throw AiNetworkError('AI network error', cause: e);
+      _dbg(
+          'send network error: $e totalMs=${swTotal.elapsedMilliseconds} retry=1');
+      await Future<void>.delayed(const Duration(milliseconds: 350));
+      try {
+        streamed = await _sendOnce();
+      } on TimeoutException catch (e2) {
+        _dbg(
+            'send timeout (retry failed): $e2 totalMs=${swTotal.elapsedMilliseconds}');
+        throw AiTimeoutError('AI request timed out', cause: e2);
+      } on SocketException catch (e2) {
+        _dbg(
+            'send network error (retry failed): $e2 totalMs=${swTotal.elapsedMilliseconds}');
+        throw AiNetworkError('AI network error', cause: e2);
+      }
     } catch (e) {
       _dbg('send failed: $e totalMs=${swTotal.elapsedMilliseconds}');
       throw AiError('AI request failed', cause: e);
