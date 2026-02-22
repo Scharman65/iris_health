@@ -19,6 +19,9 @@ class CameraOrchestrator {
   late CameraController _controller;
   CameraController get controller => _controller;
 
+  bool _torchOn = false;
+  bool get torchOn => _torchOn;
+
   CameraOrchestrator(this.profile);
 
   Future<void> initialize() async {
@@ -60,6 +63,11 @@ class CameraOrchestrator {
       // на некоторых моделях отдельные функции могут быть недоступны
     }
 
+    try {
+      await _controller.setFlashMode(FlashMode.off);
+      _torchOn = false;
+    } catch (_) {}
+
     // Fallback автонастройки
     try {
       await _controller.setFocusMode(FocusMode.auto);
@@ -73,6 +81,13 @@ class CameraOrchestrator {
   Future<Uint8List> captureBestIris() async {
     final file = await _controller.takePicture();
     return await file.readAsBytes();
+  }
+
+  Future<void> setTorch(bool on) async {
+    try {
+      await _controller.setFlashMode(on ? FlashMode.torch : FlashMode.off);
+      _torchOn = on;
+    } catch (_) {}
   }
 
   /// ------------------------------------------------------------

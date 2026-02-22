@@ -61,6 +61,7 @@ class _CameraScreenState extends State<CameraScreen> {
   bool get _bothDone => _leftDone && _rightDone;
 
   bool _focusLocked = false;
+  bool _torchOn = false;
   Offset? _focusTapPos;
   Timer? _focusHideTimer;
 
@@ -396,6 +397,20 @@ class _CameraScreenState extends State<CameraScreen> {
       appBar: AppBar(
         title: Text(title),
         actions: [
+          IconButton(
+            tooltip: _torchOn ? 'Свет: ON' : 'Свет: OFF',
+            onPressed: (_controller == null || _capturing || _sending)
+                ? null
+                : () async {
+                    final orch = _orchestrator;
+                    if (orch == null) return;
+                    final next = !_torchOn;
+                    await orch.setTorch(next);
+                    if (!mounted) return;
+                    setState(() => _torchOn = next);
+                  },
+            icon: Icon(_torchOn ? Icons.flashlight_on : Icons.flashlight_off),
+          ),
           IconButton(
             tooltip: _focusLocked ? 'AF Lock: ON' : 'AF Lock: OFF',
             onPressed: (_controller == null || _capturing || _sending)
