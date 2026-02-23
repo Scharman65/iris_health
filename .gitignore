@@ -108,3 +108,9 @@ get-pip.py
 
 # local backups
 backups/
+
+# sample eye images
+left.jpg
+right.jpg
+left.png
+right.png
