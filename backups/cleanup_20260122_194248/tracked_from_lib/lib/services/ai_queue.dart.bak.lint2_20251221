@@ -1,3 +1,0 @@
-library ai_queue_legacy_stub;
-// Заглушка, чтобы не падали импорты старого кода. Не используется в рантайме.
-class AiQueue { const AiQueue(); }

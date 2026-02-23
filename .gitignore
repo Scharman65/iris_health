@@ -105,3 +105,6 @@ R.jpg
 dejavu.zip
 run_log.txt
 get-pip.py
+
+# local backups
+backups/
