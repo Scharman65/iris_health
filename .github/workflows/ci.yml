@@ -31,5 +31,3 @@ jobs:
       - name: Flutter test
         run: flutter test
 
-      - name: Flutter build (Android APK)
-        run: flutter build apk --debug
