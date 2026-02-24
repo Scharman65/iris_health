@@ -114,3 +114,33 @@ left.jpg
 right.jpg
 left.png
 right.png
+
+# === security: never commit secrets / keys / signing / env ===
+.env
+.env.*
+*.pem
+*.key
+id_rsa
+id_rsa.*
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.mobileprovision
+key.properties
+
+# Firebase / Google services
+google-services.json
+GoogleService-Info.plist
+
+# iOS code signing / derived
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/ephemeral/
+ios/Flutter/Flutter.framework
+ios/Flutter/App.framework
+ios/Flutter/engine/
+
+# Android signing outputs
+android/app/upload-keystore.jks
+android/app/*.keystore
